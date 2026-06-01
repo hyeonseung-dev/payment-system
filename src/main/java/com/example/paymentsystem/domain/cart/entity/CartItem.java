@@ -1,4 +1,4 @@
-package com.example.paymentsystem.cart.entity;
+package com.example.paymentsystem.domain.cart.entity;
 
 import com.example.paymentsystem.global.common.BaseEntity;
 import com.example.paymentsystem.global.error.BusinessException;
@@ -40,6 +40,18 @@ public class CartItem extends BaseEntity {
             throw new IllegalArgumentException("수량은 1이상여야 합니다.");
         }
         this.quantity = quantity;
+    }
+
+    public static CartItem create(Cart cart, Product product, int quantity) {
+        if(quantity <= 0) {
+            throw new BusinessException(INVALID_QUANTITY);
+        }
+
+        CartItem cartItem = new CartItem();
+        cartItem.cart = cart;
+        cartItem.product = product;
+        cartItem.quantity = quantity;
+        return cartItem;
     }
 
     public Long getCartId() {

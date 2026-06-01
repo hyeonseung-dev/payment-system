@@ -2,7 +2,6 @@ package com.example.paymentsystem.cart.entity;
 
 import com.example.paymentsystem.global.common.BaseEntity;
 import com.example.paymentsystem.global.error.BusinessException;
-import com.example.paymentsystem.global.error.ErrorCode;
 import com.example.paymentsystem.product.Product;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

@@ -1,11 +1,14 @@
 package com.example.paymentsystem.domain.product.dto.response;
 
+import com.example.paymentsystem.domain.product.enumtype.ProductCategory;
+import com.example.paymentsystem.domain.product.enumtype.ProductStatus;
+
 public record ProductResponse(
         Long productId,
         String name,
         Integer price,
         Integer stockQuantity,
-        String category,
-        String status
+        ProductCategory category,
+        ProductStatus status
 ) {
 }

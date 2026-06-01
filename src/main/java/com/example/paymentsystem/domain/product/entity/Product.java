@@ -4,9 +4,12 @@ import com.example.paymentsystem.global.common.BaseEntity;
 import com.example.paymentsystem.domain.product.enumtype.ProductCategory;
 import com.example.paymentsystem.domain.product.enumtype.ProductStatus;
 import jakarta.persistence.*;
-import tools.jackson.core.ObjectReadContext;
+import lombok.*;
 
-
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "products")
 public class Product extends BaseEntity{

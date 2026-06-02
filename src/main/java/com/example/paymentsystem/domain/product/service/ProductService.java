@@ -1,8 +1,10 @@
 package com.example.paymentsystem.domain.product.service;
 
+import com.example.paymentsystem.domain.product.dto.response.ProductDetailResponse;
 import com.example.paymentsystem.domain.product.dto.response.ProductPageResponse;
 import com.example.paymentsystem.domain.product.dto.response.ProductResponse;
 import com.example.paymentsystem.domain.product.repository.ProductRepository;
+import com.example.paymentsystem.domain.product.entity.Product;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -34,6 +36,23 @@ public class ProductService {
                 products.size(),
                 products.size(),
                 1
+        );
+    }
+
+    public ProductDetailResponse getProduct(Long productId) {
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지 않는 상품입니다."));
+
+        return new ProductDetailResponse(
+                product.getProductId(),
+                product.getName(),
+                product.getPrice(),
+                product.getStockQuantity(),
+                product.getDescription(),
+                product.getCategory(),
+                product.getStatus()
         );
     }
 }

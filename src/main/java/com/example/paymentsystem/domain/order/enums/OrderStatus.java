@@ -1,7 +1,6 @@
 package com.example.paymentsystem.domain.order.enums;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 @Getter

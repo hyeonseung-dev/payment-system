@@ -4,6 +4,7 @@ import com.example.paymentsystem.domain.product.dto.response.ProductDetailRespon
 import com.example.paymentsystem.domain.product.dto.response.ProductPageResponse;
 import com.example.paymentsystem.domain.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,14 +18,11 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public ProductPageResponse getProducts() {
-        return productService.getProducts();
-    }
+    public ResponseEntity<ProductPageResponse> getProducts()
+    {return ResponseEntity.ok(productService.getProducts());}
 
     @GetMapping("/{productId}")
-    public ProductDetailResponse getProduct(
-            @PathVariable Long productId
-    ) {
-        return productService.getProduct(productId);
-    }
+    public ResponseEntity<ProductDetailResponse> getProduct(@PathVariable Long productId)
+    {return ResponseEntity.ok(productService.getProduct(productId));}
+
 }

@@ -1,8 +1,9 @@
 package com.example.paymentsystem.domain.cart.entity;
 
+import com.example.paymentsystem.domain.product.entity.Product;
 import com.example.paymentsystem.global.common.BaseEntity;
 import com.example.paymentsystem.global.error.BusinessException;
-import com.example.paymentsystem.product.Product;
+
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,22 +37,14 @@ public class CartItem extends BaseEntity {
     public CartItem(Product product, Cart cart, int quantity) {
         this.cart = cart;
         this.product = product;
-        if(quantity < 1) {
-            throw new IllegalArgumentException("수량은 1이상여야 합니다.");
+        if (quantity < 1) {
+            throw new BusinessException(INVALID_QUANTITY);
         }
         this.quantity = quantity;
     }
 
     public static CartItem create(Cart cart, Product product, int quantity) {
-        if(quantity <= 0) {
-            throw new BusinessException(INVALID_QUANTITY);
-        }
-
-        CartItem cartItem = new CartItem();
-        cartItem.cart = cart;
-        cartItem.product = product;
-        cartItem.quantity = quantity;
-        return cartItem;
+        return new CartItem(product, cart, quantity);
     }
 
     public Long getCartId() {
@@ -63,14 +56,14 @@ public class CartItem extends BaseEntity {
     }
 
     public void addQuantity(int quantity) {
-        if(quantity < 1) {
+        if (quantity < 1) {
             throw new BusinessException(INVALID_QUANTITY);
         }
         this.quantity += quantity;
     }
 
     public void changeQuantity(int quantity) {
-        if(quantity < 1) {
+        if (quantity < 1) {
             throw new BusinessException(INVALID_QUANTITY);
         }
         this.quantity = quantity;

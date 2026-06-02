@@ -15,7 +15,7 @@ public class PointHistory extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false)
-    private Long pointHistoryId;
+    private Long id;
 
     @Column(nullable = false)
     private Long paymentId;

@@ -8,6 +8,7 @@ import com.example.paymentsystem.domain.product.entity.Product;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
@@ -16,12 +17,11 @@ public class ProductService {
     private final ProductRepository productRepository;
 
     public ProductPageResponse getProducts() {
-
         List<ProductResponse> products =
                 productRepository.findAll()
                         .stream()
                         .map(product -> new ProductResponse(
-                                product.getProductId(),
+                                product.getId(),
                                 product.getName(),
                                 product.getPrice(),
                                 product.getStockQuantity(),
@@ -29,7 +29,6 @@ public class ProductService {
                                 product.getStatus()
                         ))
                         .toList();
-
         return new ProductPageResponse(
                 products,
                 0,
@@ -40,13 +39,11 @@ public class ProductService {
     }
 
     public ProductDetailResponse getProduct(Long productId) {
-
         Product product = productRepository.findById(productId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("존재하지 않는 상품입니다."));
+                .orElseThrow(() -> new NoSuchElementException("PRODUCT_NOT_FOUND"));
 
         return new ProductDetailResponse(
-                product.getProductId(),
+                product.getId(),
                 product.getName(),
                 product.getPrice(),
                 product.getStockQuantity(),

@@ -40,7 +40,7 @@ public class ProductService {
 
     public ProductDetailResponse getProduct(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new NoSuchElementException("PRODUCT_NOT_FOUND"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
         return new ProductDetailResponse(
                 product.getId(),

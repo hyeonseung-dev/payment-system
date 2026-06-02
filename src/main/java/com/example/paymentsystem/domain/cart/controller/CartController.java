@@ -2,16 +2,14 @@ package com.example.paymentsystem.domain.cart.controller;
 
 import com.example.paymentsystem.domain.cart.dto.AddCartRequest;
 import com.example.paymentsystem.domain.cart.dto.AddCartResponse;
+import com.example.paymentsystem.domain.cart.dto.CartResponse;
 import com.example.paymentsystem.domain.cart.service.CartService;
 import com.example.paymentsystem.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/carts")
@@ -23,6 +21,12 @@ public class CartController {
     // todo JWT 구현 완료 후 memberId는 인증 객체에서 꺼내도록 수정 예정
     private static final Long MEMBER_ID = 1L;
 
+    @GetMapping
+    public ResponseEntity<ApiResponse<CartResponse>> findCartItems() {
+        CartResponse response = cartService.findCartItems(MEMBER_ID);
+
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
 
     @PostMapping("/items")
     public ResponseEntity<ApiResponse<AddCartResponse>> addItem(@Valid @RequestBody AddCartRequest request) {

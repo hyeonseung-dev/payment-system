@@ -1,5 +1,7 @@
 package com.example.paymentsystem.domain.cart.service;
 
+import com.example.paymentsystem.domain.cart.dto.CartItemResponse;
+import com.example.paymentsystem.domain.cart.dto.CartResponse;
 import com.example.paymentsystem.domain.cart.entity.Cart;
 import com.example.paymentsystem.domain.cart.entity.CartItem;
 import com.example.paymentsystem.domain.cart.repository.CartItemRepository;
@@ -14,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class CartService {
@@ -22,6 +26,19 @@ public class CartService {
     private final CartRepository cartRepository;
     private final MemberRepository memberRepository;
     private final ProductRepository productRepository;
+
+    @Transactional(readOnly = true)
+    public CartResponse findCartItems(Long memberId) {
+        Cart cart = cartRepository.findByMember_Id(memberId).orElseThrow(
+                () -> new BusinessException(ErrorCode.CART_NOT_FOUND)
+        );
+
+        List<CartItemResponse> list = cartItemRepository.findAllByMemberId(memberId).stream()
+                .map(CartItemResponse::from)
+                .toList();
+
+        return CartResponse.of(cart.getId(), list);
+    }
 
     @Transactional
     public Long addItem(Long memberId, Long productId, int quantity) {
@@ -41,7 +58,7 @@ public class CartService {
             throw new BusinessException(ErrorCode.CART_ITEM_STOCK_EXCEEDED);
         }
 
-        if(cartItem.getId() != null) {
+        if (cartItem.getId() != null) {
             cartItem.addQuantity(quantity);
         }
 

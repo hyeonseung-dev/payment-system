@@ -41,7 +41,7 @@ public class CartService {
             throw new BusinessException(ErrorCode.CART_ITEM_STOCK_EXCEEDED);
         }
 
-        if (cartItem.getId() != null) {
+        if(cartItem.getId() != null) {
             cartItem.addQuantity(quantity);
         }
 

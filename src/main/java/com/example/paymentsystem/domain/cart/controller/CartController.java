@@ -1,9 +1,12 @@
 package com.example.paymentsystem.domain.cart.controller;
 
 import com.example.paymentsystem.domain.cart.dto.AddCartRequest;
+import com.example.paymentsystem.domain.cart.dto.AddCartResponse;
 import com.example.paymentsystem.domain.cart.service.CartService;
+import com.example.paymentsystem.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,12 +25,19 @@ public class CartController {
 
 
     @PostMapping("/items")
-    public ResponseEntity<Long> addItem(@Valid @RequestBody AddCartRequest request) {
+    public ResponseEntity<ApiResponse<AddCartResponse>> addItem(@Valid @RequestBody AddCartRequest request) {
         Long addItem = cartService.addItem(
                 MEMBER_ID,
                 request.productId(),
                 request.quantity()
         );
-        return ResponseEntity.ok(addItem);
+
+        AddCartResponse response = AddCartResponse.of(
+                addItem,
+                request.productId(),
+                request.quantity()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 }

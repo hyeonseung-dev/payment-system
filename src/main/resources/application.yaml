@@ -1,3 +1,19 @@
 spring:
   application:
     name: payment-system
+  datasource:
+    url: jdbc:mysql://localhost:3306/payment_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: root
+    password: 12345678     # ← 여기만 각자 수정해서 사용 후 .gitignore에 넣어서 커밋
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+

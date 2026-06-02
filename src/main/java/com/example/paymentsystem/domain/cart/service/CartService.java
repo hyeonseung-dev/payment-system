@@ -14,8 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class CartService {
@@ -34,33 +32,23 @@ public class CartService {
 
         Cart cart = getOrCreateCart(memberId);
 
-        Optional<CartItem> byCartMemberIdAndProductId = cartItemRepository.findByCart_Member_IdAndProduct_Id(memberId, productId);
+        CartItem cartItem = cartItemRepository.findByCart_Member_IdAndProduct_Id(memberId, productId)
+                .orElse(CartItem.create(cart, product, quantity));
 
-        int totalQuantity = quantity;
-
-        if (byCartMemberIdAndProductId.isPresent()) {
-            CartItem cartItem = byCartMemberIdAndProductId.get();
-
-            totalQuantity = cartItem.getQuantity() + quantity;
-        }
+        int totalQuantity = cartItem.getId() != null ? cartItem.getQuantity() + quantity : quantity;
 
         if (totalQuantity > product.getStockQuantity()) {
             throw new BusinessException(ErrorCode.CART_ITEM_STOCK_EXCEEDED);
         }
 
-        if (byCartMemberIdAndProductId.isPresent()) {
-            CartItem cartItem = byCartMemberIdAndProductId.get();
+        if (cartItem.getId() != null) {
             cartItem.addQuantity(quantity);
-            return cartItem.getId();
         }
-
-        CartItem cartItem = CartItem.create(cart, product, quantity);
 
         cartItemRepository.save(cartItem);
 
         return cartItem.getId();
     }
-
 
     private Cart getOrCreateCart(Long memberId) {
         return cartRepository.findByMember_Id(memberId).orElseGet(
@@ -73,4 +61,5 @@ public class CartService {
                     return cartRepository.save(cart);
                 });
     }
+
 }

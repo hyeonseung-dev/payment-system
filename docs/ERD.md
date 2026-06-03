@@ -61,3 +61,9 @@ order_items.product_price_snapshot
 point_histories.balance_after
 ```
 
+## Webhook Event Columns
+
+```text
+webhook_events.payload TEXT
+webhook_events.failure_reason VARCHAR(1000)
+```

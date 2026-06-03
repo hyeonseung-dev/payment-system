@@ -69,7 +69,7 @@ public class AuthService {
         String token = jwtUtil.generateToken(member.getId());
 
         // 4. 토큰 반환
-        return LoginResponse.from(token);
+        return LoginResponse.of(token);
     }
 
 }

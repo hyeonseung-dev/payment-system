@@ -2,6 +2,7 @@ package com.example.paymentsystem.domain.cart.service;
 
 import com.example.paymentsystem.domain.cart.dto.CartItemResponse;
 import com.example.paymentsystem.domain.cart.dto.CartResponse;
+import com.example.paymentsystem.domain.cart.dto.UpdateCartResponse;
 import com.example.paymentsystem.domain.cart.entity.Cart;
 import com.example.paymentsystem.domain.cart.entity.CartItem;
 import com.example.paymentsystem.domain.cart.repository.CartItemRepository;
@@ -77,6 +78,20 @@ public class CartService {
                     Cart cart = Cart.create(member);
                     return cartRepository.save(cart);
                 });
+    }
+
+    @Transactional
+    public UpdateCartResponse updateQuantity(Long memberId, Long itemId, int quantity) {
+        CartItem cartItem = cartItemRepository.findByIdAndCart_Member_Id(itemId, memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
+
+        if (quantity > cartItem.getProduct().getStockQuantity()) {
+            throw new BusinessException(ErrorCode.CART_ITEM_STOCK_EXCEEDED);
+        }
+
+        cartItem.changeQuantity(quantity);
+
+        return new UpdateCartResponse(cartItem.getId(), cartItem.getQuantity());
     }
 
 }

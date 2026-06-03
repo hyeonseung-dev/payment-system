@@ -42,7 +42,7 @@ public class SecurityConfig {
                                 "/api/products/**",
                                 "/api/webhooks/**"
                         ).permitAll()
-                        .anyRequest().authenticated()  // ← permitAll에서 authenticated로 변경
+                        .anyRequest().authenticated()
                 )
                 .build();
     }

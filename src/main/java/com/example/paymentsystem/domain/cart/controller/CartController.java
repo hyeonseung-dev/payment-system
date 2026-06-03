@@ -5,6 +5,7 @@ import com.example.paymentsystem.domain.cart.service.CartService;
 import com.example.paymentsystem.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +36,7 @@ public class CartController {
                 request.quantity()
         );
 
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 
     @PatchMapping("/items/{cartItemId}")

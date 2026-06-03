@@ -44,4 +44,10 @@ public class CartController {
         UpdateCartResponse response = cartService.updateQuantity(MEMBER_ID, cartItemId, request.quantity());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
+
+    @DeleteMapping("/items/{cartItemId}")
+    public ResponseEntity<ApiResponse<Void>> removeCartItem(@PathVariable Long cartItemId) {
+        cartService.removeItem(MEMBER_ID, cartItemId);
+        return ResponseEntity.ok(ApiResponse.ok());
+    }
 }

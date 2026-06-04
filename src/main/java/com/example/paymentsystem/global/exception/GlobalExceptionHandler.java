@@ -3,11 +3,9 @@ package com.example.paymentsystem.global.exception;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
 import com.example.paymentsystem.global.response.ApiResponse;
-import jakarta.persistence.OptimisticLockException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -69,14 +67,5 @@ public class GlobalExceptionHandler {
         log.error("[Exception] message={}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR));
-    }
-
-    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, OptimisticLockException.class})
-    public ResponseEntity<ApiResponse<Void>> handleOptimisticLock(
-            RuntimeException e
-    ) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(
-                        ErrorCode.CART_ITEM_CONFLICT));
     }
 }

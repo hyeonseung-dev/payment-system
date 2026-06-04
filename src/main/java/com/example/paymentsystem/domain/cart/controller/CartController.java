@@ -1,8 +1,6 @@
 package com.example.paymentsystem.domain.cart.controller;
 
-import com.example.paymentsystem.domain.cart.dto.AddCartRequest;
-import com.example.paymentsystem.domain.cart.dto.AddCartResponse;
-import com.example.paymentsystem.domain.cart.dto.CartResponse;
+import com.example.paymentsystem.domain.cart.dto.*;
 import com.example.paymentsystem.domain.cart.service.CartService;
 import com.example.paymentsystem.global.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -30,11 +28,7 @@ public class CartController {
 
     @PostMapping("/items")
     public ResponseEntity<ApiResponse<AddCartResponse>> addItem(@Valid @RequestBody AddCartRequest request) {
-        Long addItem = cartService.addItem(
-                MEMBER_ID,
-                request.productId(),
-                request.quantity()
-        );
+        Long addItem = cartService.addItem(MEMBER_ID, request.productId(), request.quantity());
 
         AddCartResponse response = AddCartResponse.of(
                 addItem,
@@ -43,5 +37,17 @@ public class CartController {
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
+    }
+
+    @PatchMapping("/items/{cartItemId}")
+    public ResponseEntity<ApiResponse<UpdateCartResponse>> updateQuantity(@PathVariable Long cartItemId, @Valid @RequestBody UpdateCartRequest request) {
+        UpdateCartResponse response = cartService.updateQuantity(MEMBER_ID, cartItemId, request.quantity());
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @DeleteMapping("/items/{cartItemId}")
+    public ResponseEntity<ApiResponse<Void>> removeCartItem(@PathVariable Long cartItemId) {
+        cartService.removeItem(MEMBER_ID, cartItemId);
+        return ResponseEntity.ok(ApiResponse.ok());
     }
 }

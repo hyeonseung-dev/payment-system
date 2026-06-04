@@ -29,13 +29,15 @@ public enum ErrorCode {
     INSUFFICIENT_STOCK(HttpStatus.CONFLICT,          "PRODUCT_002", "재고가 부족합니다."),
     INVALID_PRICE(HttpStatus.BAD_REQUEST,            "PRODUCT_003", "가격은 0 이상이어야 합니다."),
     INVALID_STOCK(HttpStatus.BAD_REQUEST,            "PRODUCT_004", "재고는 0 이상이어야 합니다."),
+    INVALID_STOCK_QUANTITY(HttpStatus.BAD_REQUEST, "PRODUCT_005", "재고 수량은 0보다 커야 합니다."),
 
     // ── Cart ────────────────────────────────────────────────
-    CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND,        "CART_001", "장바구니 상품을 찾을 수 없습니다."),
-    CART_EMPTY(HttpStatus.BAD_REQUEST,               "CART_002", "장바구니가 비어있습니다."),
-    INVALID_QUANTITY(HttpStatus.BAD_REQUEST,         "CART_003", "수량은 1 이상이어야 합니다."),
-    CART_ITEM_STOCK_EXCEEDED(HttpStatus.CONFLICT,    "CART_004", "요청 수량이 재고를 초과합니다."),
-    CART_NOT_FOUND(HttpStatus.NOT_FOUND,             "CART_005", "장바구니가 존재하지 않습니다."),
+    CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND,        "CART_002", "장바구니 상품을 찾을 수 없습니다."),
+    CART_EMPTY(HttpStatus.BAD_REQUEST,               "CART_003", "장바구니가 비어있습니다."),
+    INVALID_QUANTITY(HttpStatus.BAD_REQUEST,         "CART_004", "수량은 1 이상이어야 합니다."),
+    CART_ITEM_STOCK_EXCEEDED(HttpStatus.CONFLICT,    "CART_005", "요청 수량이 재고를 초과합니다."),
+    CART_NOT_FOUND(HttpStatus.NOT_FOUND,             "CART_006", "장바구니가 존재하지 않습니다."),
+    CART_ITEM_CONFLICT(HttpStatus.CONFLICT,          "CART_007", "장바구니가 동시에 수정되었습니다. 다시 시도해주세요"),
 
     // ── Order ───────────────────────────────────────────────
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND,            "ORDER_001", "주문을 찾을 수 없습니다."),
@@ -45,7 +47,7 @@ public enum ErrorCode {
     POINT_NOT_FOUND(HttpStatus.NOT_FOUND,            "POINT_001", "포인트 정보를 찾을 수 없습니다."),
     INSUFFICIENT_POINT(HttpStatus.BAD_REQUEST,       "POINT_002", "포인트 잔액이 부족합니다."),
     POINT_BALANCE_NEGATIVE(HttpStatus.BAD_REQUEST,   "POINT_003", "포인트 잔액이 음수가 될 수 없습니다."),
-    INVALID_POINT_AMOUNT(HttpStatus.BAD_REQUEST,     "POINT_004", "포인트 금액은 0보다 커야 합니다."),
+    INVALID_POINT_AMOUNT(HttpStatus.BAD_REQUEST, "POINT_004", "포인트 금액은 0보다 커야 합니다."),
 
     // ── Payment ─────────────────────────────────────────────
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND,          "PAYMENT_001", "결제 정보를 찾을 수 없습니다."),

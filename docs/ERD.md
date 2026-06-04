@@ -6,7 +6,6 @@
 ## Tables
 
 - members
-- points
 - point_histories
 - products
 - carts

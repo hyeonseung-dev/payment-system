@@ -22,6 +22,7 @@ public enum ErrorCode {
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND,           "MEMBER_001", "회원을 찾을 수 없습니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT,             "MEMBER_002", "이미 존재하는 이메일입니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED,     "MEMBER_003", "이메일 또는 비밀번호가 올바르지 않습니다."),
+    DUPLICATE_PHONE(HttpStatus.CONFLICT,             "MEMBER_004", "이미 존재하는 전화번호입니다."),
 
     // ── Product ─────────────────────────────────────────────
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND,          "PRODUCT_001", "상품을 찾을 수 없습니다."),
@@ -40,7 +41,7 @@ public enum ErrorCode {
 
     // ── Order ───────────────────────────────────────────────
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND,            "ORDER_001", "주문을 찾을 수 없습니다."),
-    INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST,     "ORDER_003", "유효하지 않은 주문 상태 변경입니다."),
+    INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST,     "ORDER_002", "유효하지 않은 주문 상태 변경입니다."),
 
     // ── Point ───────────────────────────────────────────────
     POINT_NOT_FOUND(HttpStatus.NOT_FOUND,            "POINT_001", "포인트 정보를 찾을 수 없습니다."),
@@ -54,8 +55,8 @@ public enum ErrorCode {
     INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST,   "PAYMENT_003", "유효하지 않은 결제 상태입니다."),
     PAYMENT_NOT_PAID(HttpStatus.BAD_REQUEST,         "PAYMENT_004", "PG사 결제가 완료되지 않았습니다."),
     ALREADY_PROCESSED_PAYMENT(HttpStatus.CONFLICT,   "PAYMENT_005", "이미 처리된 결제입니다."),
-    PAYMENT_ID_MISMATCH(HttpStatus.BAD_REQUEST,      "PAYMENT_007", "주문과 결제 식별자가 일치하지 않습니다."),
-    PG_CANCEL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PAYMENT_008", "PG 취소 요청에 실패했습니다."),
+    PAYMENT_ID_MISMATCH(HttpStatus.BAD_REQUEST,      "PAYMENT_006", "주문과 결제 식별자가 일치하지 않습니다."),
+    PG_CANCEL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PAYMENT_007", "PG 취소 요청에 실패했습니다."),
 
     // ── Refund ──────────────────────────────────────────────
     REFUND_NOT_FOUND(HttpStatus.NOT_FOUND,           "REFUND_001", "환불 정보를 찾을 수 없습니다."),

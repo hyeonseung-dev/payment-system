@@ -31,15 +31,15 @@ public enum ErrorCode {
     INVALID_STOCK(HttpStatus.BAD_REQUEST,            "PRODUCT_004", "재고는 0 이상이어야 합니다."),
 
     // ── Cart ────────────────────────────────────────────────
-    CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND,        "CART_002", "장바구니 상품을 찾을 수 없습니다."),
-    CART_EMPTY(HttpStatus.BAD_REQUEST,               "CART_003", "장바구니가 비어있습니다."),
-    INVALID_QUANTITY(HttpStatus.BAD_REQUEST,         "CART_004", "수량은 1 이상이어야 합니다."),
-    CART_ITEM_STOCK_EXCEEDED(HttpStatus.CONFLICT,    "CART_005", "요청 수량이 재고를 초과합니다."),
-    CART_NOT_FOUND(HttpStatus.NOT_FOUND,             "CART_006", "장바구니가 존재하지 않습니다."),
+    CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND,        "CART_001", "장바구니 상품을 찾을 수 없습니다."),
+    CART_EMPTY(HttpStatus.BAD_REQUEST,               "CART_002", "장바구니가 비어있습니다."),
+    INVALID_QUANTITY(HttpStatus.BAD_REQUEST,         "CART_003", "수량은 1 이상이어야 합니다."),
+    CART_ITEM_STOCK_EXCEEDED(HttpStatus.CONFLICT,    "CART_004", "요청 수량이 재고를 초과합니다."),
+    CART_NOT_FOUND(HttpStatus.NOT_FOUND,             "CART_005", "장바구니가 존재하지 않습니다."),
 
     // ── Order ───────────────────────────────────────────────
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND,            "ORDER_001", "주문을 찾을 수 없습니다."),
-    INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST,     "ORDER_003", "유효하지 않은 주문 상태 변경입니다."),
+    INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST,     "ORDER_002", "유효하지 않은 주문 상태 변경입니다."),
 
     // ── Point ───────────────────────────────────────────────
     POINT_NOT_FOUND(HttpStatus.NOT_FOUND,            "POINT_001", "포인트 정보를 찾을 수 없습니다."),
@@ -52,8 +52,8 @@ public enum ErrorCode {
     INVALID_PAYMENT_STATUS(HttpStatus.BAD_REQUEST,   "PAYMENT_003", "유효하지 않은 결제 상태입니다."),
     PAYMENT_NOT_PAID(HttpStatus.BAD_REQUEST,         "PAYMENT_004", "PG사 결제가 완료되지 않았습니다."),
     ALREADY_PROCESSED_PAYMENT(HttpStatus.CONFLICT,   "PAYMENT_005", "이미 처리된 결제입니다."),
-    PAYMENT_ID_MISMATCH(HttpStatus.BAD_REQUEST,      "PAYMENT_007", "주문과 결제 식별자가 일치하지 않습니다."),
-    PG_CANCEL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PAYMENT_008", "PG 취소 요청에 실패했습니다."),
+    PAYMENT_ID_MISMATCH(HttpStatus.BAD_REQUEST,      "PAYMENT_006", "주문과 결제 식별자가 일치하지 않습니다."),
+    PG_CANCEL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PAYMENT_007", "PG 취소 요청에 실패했습니다."),
 
     // ── Refund ──────────────────────────────────────────────
     REFUND_NOT_FOUND(HttpStatus.NOT_FOUND,           "REFUND_001", "환불 정보를 찾을 수 없습니다."),

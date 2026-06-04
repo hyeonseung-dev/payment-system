@@ -116,5 +116,72 @@ public class Member extends BaseEntity {
         this.phoneNumber = phoneNumber;
         this.pointBalance = pointBalance;
     }
+
+    /**
+     * 포인트 사용 (결제 시)
+     *
+     * @param amount 사용할 포인트
+     * @throws BusinessException 잔액 부족 시 {@link ErrorCode#INSUFFICIENT_POINT}
+     */
+    public void usePoint(int amount) {
+
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
+        }
+
+        if (this.pointBalance < amount) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_POINT);
+        }
+        this.pointBalance -= amount;
+    }
+
+    /**
+     * 포인트 적립 (결제 완료 시)
+     *
+     * @param amount 적립할 포인트
+     */
+    public void earnPoint(int amount) {
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
+        }
+
+        this.pointBalance += amount;
+    }
+
+    /**
+     * 포인트 복구 (환불 시 사용분 반환)
+     *
+     * @param amount 복구할 포인트
+     */
+    public void restoreUsePoint(int amount) {
+
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
+        }
+
+        this.pointBalance += amount;
+    }
+
+    /**
+     * 포인트 회수 (환불 시 적립분 차감)
+     * 즉시 적립 정책으로 인해 음수 잔액 허용
+     *
+     * @param amount 회수할 포인트
+     */
+    public void cancelEarnPoint(int amount) {
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
+        }
+
+        this.pointBalance -= amount;
+    }
 }
 

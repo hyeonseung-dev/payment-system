@@ -105,13 +105,6 @@ public class Member extends BaseEntity {
             );
         }
 
-        /*
-        if (pointBalance < amount) {
-            throw new BusinessException(
-                    ErrorCode.INSUFFICIENT_POINT
-            );
-        }
-         */
 
         pointBalance -= amount;
     }

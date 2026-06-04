@@ -1,4 +1,3 @@
-
 # docs/ERD.md
 
 # ERD
@@ -6,7 +5,6 @@
 ## Tables
 
 - members
-- points
 - point_histories
 - products
 - carts

@@ -29,7 +29,7 @@
 
 | 기능 | Method | URL | 인증 |
 |---|---|---|---|
-| 주문서 미리보기 | POST | `/api/carts/orders/preview` | O |
+| 주문서 미리보기 | POST | `api/orders/preview` | O |
 | 주문 생성 | POST | `/api/carts/orders` | O |
 | 내 주문 목록 조회 | GET | `/api/orders` | O |
 | 주문 상세 조회 | GET | `/api/orders/{orderId}` | O |

@@ -102,11 +102,15 @@ public class Payment extends BaseEntity {
      * 결제를 완료 상태로 변경한다.
      *
      * <p>READY 상태의 결제가 PortOne 결제 조회와 금액 검증을 통과했을 때 호출한다.
-     * 결제 완료 시각도 함께 저장한다.</p>
+     * 이미 PAID 상태라면 결제 확정 API와 웹훅 중복 호출로 보고 멱등하게 무시한다.</p>
      *
      * @param paidAt 결제 완료 시각
      */
     public void complete(LocalDateTime paidAt) {
+        if (status == PaymentStatus.PAID) {
+            return;
+        }
+
         transitTo(PaymentStatus.PAID);
         this.paidAt = paidAt;
     }
@@ -114,27 +118,42 @@ public class Payment extends BaseEntity {
     /**
      * 결제를 실패 상태로 변경한다.
      *
-     * <p>PG 결제 실패, 결제 금액 불일치 등 결제가 정상 완료되지 못한 경우 호출한다.</p>
+     * <p>PG 결제 실패, 결제 금액 불일치 등 결제가 정상 완료되지 못한 경우 호출한다.
+     * 이미 FAILED 상태라면 실패 처리 중복 호출로 보고 멱등하게 무시한다.</p>
      */
     public void fail() {
+        if (status == PaymentStatus.FAILED) {
+            return;
+        }
+
         transitTo(PaymentStatus.FAILED);
     }
 
     /**
      * 결제를 부분 환불 상태로 변경한다.
      *
-     * <p>결제 완료 후 주문 상품 중 일부만 환불되어 환불 가능 금액이 남아 있는 경우 호출한다.</p>
+     * <p>결제 완료 후 주문 상품 중 일부만 환불되어 환불 가능 금액이 남아 있는 경우 호출한다.
+     * 이미 PARTIAL_REFUNDED 상태라면 반복 부분 환불 처리로 보고 멱등하게 무시한다.</p>
      */
     public void markPartialRefunded() {
+        if (status == PaymentStatus.PARTIAL_REFUNDED) {
+            return;
+        }
+
         transitTo(PaymentStatus.PARTIAL_REFUNDED);
     }
 
     /**
      * 결제를 전체 환불 상태로 변경한다.
      *
-     * <p>결제 완료 금액이 모두 환불되었거나, 부분 환불 이후 남은 금액까지 모두 환불된 경우 호출한다.</p>
+     * <p>결제 완료 금액이 모두 환불되었거나, 부분 환불 이후 남은 금액까지 모두 환불된 경우 호출한다.
+     * 이미 REFUNDED 상태라면 환불 완료 중복 처리로 보고 멱등하게 무시한다.</p>
      */
     public void markRefunded() {
+        if (status == PaymentStatus.REFUNDED) {
+            return;
+        }
+
         transitTo(PaymentStatus.REFUNDED);
     }
 

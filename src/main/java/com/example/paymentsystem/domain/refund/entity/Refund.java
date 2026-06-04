@@ -49,4 +49,74 @@ public class Refund extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private RefundStatus status;
+
+    private Refund(
+            Payment payment,
+            String reason,
+            Long totalRefundAmount,
+            Long pointRefundAmount,
+            Long pgRefundAmount,
+            RefundStatus status
+    ) {
+        this.payment = payment;
+        this.reason = reason;
+        this.totalRefundAmount = totalRefundAmount;
+        this.pointRefundAmount = pointRefundAmount;
+        this.pgRefundAmount = pgRefundAmount;
+        this.status = status;
+    }
+
+    /**
+     * 정상 완료된 환불 정보를 생성한다.
+     *
+     * @param payment 환불 대상 결제
+     * @param reason 환불 사유
+     * @param totalRefundAmount 전체 환불 금액
+     * @param pointRefundAmount 포인트 환불 금액
+     * @param pgRefundAmount PG 환불 금액
+     * @return 완료 상태의 환불 엔티티
+     */
+    public static Refund createCompleted(
+            Payment payment,
+            String reason,
+            Long totalRefundAmount,
+            Long pointRefundAmount,
+            Long pgRefundAmount
+    ) {
+        return new Refund(
+                payment,
+                reason,
+                totalRefundAmount,
+                pointRefundAmount,
+                pgRefundAmount,
+                RefundStatus.COMPLETED
+        );
+    }
+
+    /**
+     * 실패한 환불 정보를 생성한다.
+     *
+     * @param payment 환불 대상 결제
+     * @param reason 환불 사유
+     * @param totalRefundAmount 전체 환불 금액
+     * @param pointRefundAmount 포인트 환불 금액
+     * @param pgRefundAmount PG 환불 금액
+     * @return 실패 상태의 환불 엔티티
+     */
+    public static Refund createFailed(
+            Payment payment,
+            String reason,
+            Long totalRefundAmount,
+            Long pointRefundAmount,
+            Long pgRefundAmount
+    ) {
+        return new Refund(
+                payment,
+                reason,
+                totalRefundAmount,
+                pointRefundAmount,
+                pgRefundAmount,
+                RefundStatus.FAILED
+        );
+    }
 }

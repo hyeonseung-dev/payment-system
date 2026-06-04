@@ -44,4 +44,38 @@ public class RefundItem extends BaseEntity {
 
     @Column(nullable = false)
     private Long pgRefundAmount;
+
+    private RefundItem(
+            Refund refund,
+            OrderItem orderItem,
+            Integer quantity,
+            Long pointRefundAmount,
+            Long pgRefundAmount
+    ) {
+        this.refund = refund;
+        this.orderItem = orderItem;
+        this.quantity = quantity;
+        this.pointRefundAmount = pointRefundAmount;
+        this.pgRefundAmount = pgRefundAmount;
+    }
+
+    /**
+     * 환불 상품 정보를 생성한다.
+     *
+     * @param refund 환불 요청
+     * @param orderItem 환불 대상 주문 상품
+     * @param quantity 환불 수량
+     * @param pointRefundAmount 포인트 환불 금액
+     * @param pgRefundAmount PG 환불 금액
+     * @return 환불 상품 엔티티
+     */
+    public static RefundItem create(
+            Refund refund,
+            OrderItem orderItem,
+            Integer quantity,
+            Long pointRefundAmount,
+            Long pgRefundAmount
+    ) {
+        return new RefundItem(refund, orderItem, quantity, pointRefundAmount, pgRefundAmount);
+    }
 }

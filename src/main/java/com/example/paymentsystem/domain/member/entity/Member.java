@@ -31,6 +31,26 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private int pointBalance = 0;
 
+    public void usePoint(int amout) {
+        if (pointBalance < amout) {
+            throw new IllegalArgumentException("포인트가 부족합니다.");
+        }
+
+        pointBalance -= amout;
+    }
+
+    public void earnPoint(int amount) {
+        pointBalance += amount;
+    }
+
+    public void cancelEarnPoint(int amount) {
+        if(pointBalance < amount) {
+            throw new IllegalArgumentException("포인트가 부족합니다.");
+        }
+
+        pointBalance -= amount;
+    }
+
     public Member(String email, String password, String name, String phoneNumber, int pointBalance) {
         this.email = email;
         this.password = password;

@@ -38,9 +38,10 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, SecurityContextHolderAwareRequestFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",
-                                "/api/products/**",
-                                "/api/webhooks/**"
+                                "/api/auth/**",      // 회원가입, 로그인
+                                "/api/products/**",  // 상품 조회 (인증 불필요)
+                                "/api/webhooks/**",   // PortOne 웹훅 (JWT 대신 서명 검증)
+                                "/api/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

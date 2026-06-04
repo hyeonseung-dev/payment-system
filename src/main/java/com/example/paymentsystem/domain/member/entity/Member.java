@@ -1,7 +1,5 @@
 package com.example.paymentsystem.domain.member.entity;
 
-import com.example.paymentsystem.global.error.BusinessException;
-import com.example.paymentsystem.global.error.ErrorCode;
 import com.example.paymentsystem.global.common.BaseEntity;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
@@ -23,7 +21,7 @@ public class Member extends BaseEntity {
     @Column(nullable = false, length = 100, unique = true)
     private String email;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String password;
 
     @Column(nullable = false, length = 50)
@@ -35,57 +33,23 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private int pointBalance = 0;
 
-    public void usePoint(int amount) {
-
-        if (amount <= 0) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_POINT_AMOUNT
-            );
-        }
-
-        if (pointBalance < amount) {
-            throw new BusinessException(
-                    ErrorCode.INSUFFICIENT_POINT
-            );
-        }
-
-        pointBalance -= amount;
-    }
-
-    public void earnPoint(int amount) {
-
-        if (amount <= 0) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_POINT_AMOUNT
-            );
-        }
-
-        pointBalance += amount;
-    }
-
-    public void cancelEarnPoint(int amount) {
-
-        if (amount <= 0) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_POINT_AMOUNT
-            );
-        }
-
-        if (pointBalance < amount) {
-            throw new BusinessException(
-                    ErrorCode.INSUFFICIENT_POINT
-            );
-        }
-
-        pointBalance -= amount;
-    }
-
     public Member(String email, String password, String name, String phoneNumber, int pointBalance) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.phoneNumber = phoneNumber;
         this.pointBalance = pointBalance;
+    }
+
+    public Member(String email, String password, String name, String phoneNumber) {
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.phoneNumber = phoneNumber;
+    }
+
+    public static Member create(String mail, String password, String name, String phoneNumber) {
+        return new Member(mail, password, name, phoneNumber);
     }
 
     /**

@@ -55,6 +55,18 @@ public class Product extends BaseEntity{
         this.status = status;
     }
 
+    public Product(String name, Integer price, Integer stockQuantity, ProductCategory category, ProductStatus status) {
+        this.name = name;
+        this.price = price;
+        this.stockQuantity = stockQuantity;
+        this.category = category;
+        this.status = status;
+    }
+
+    public static Product create(String name, int price, int stockQuantity, ProductCategory category, ProductStatus status) {
+        return new Product(name, price, stockQuantity, category, status);
+    }
+
     public void decreaseStock(int quantity) {
 
         if (quantity <= 0) {

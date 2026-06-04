@@ -47,7 +47,7 @@ public class JwtUtil {
      */
     public String generateToken(Long memberId) {
         Date now = new Date();
-        return BEARER_PREFIX + Jwts.builder()
+        return Jwts.builder()
                 .subject(String.valueOf(memberId))  // memberId를 subject에 저장
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiration))

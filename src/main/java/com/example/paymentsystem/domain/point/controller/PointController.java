@@ -5,8 +5,6 @@ import com.example.paymentsystem.domain.point.dto.response.PointBalanceResponse;
 import com.example.paymentsystem.domain.point.service.PointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
-import com.example.paymentsystem.domain.point.service.PointService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 

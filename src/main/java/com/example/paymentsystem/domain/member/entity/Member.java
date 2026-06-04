@@ -35,59 +35,6 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private int pointBalance = 0;
 
-    public void usePoint(int amount) {
-
-        if (amount <= 0) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_POINT_AMOUNT
-            );
-        }
-
-        if (pointBalance < amount) {
-            throw new BusinessException(
-                    ErrorCode.INSUFFICIENT_POINT
-            );
-        }
-
-        pointBalance -= amount;
-    }
-
-    public void earnPoint(int amount) {
-
-        if (amount <= 0) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_POINT_AMOUNT
-            );
-        }
-
-        pointBalance += amount;
-    }
-
-    public void cancelEarnPoint(int amount) {
-
-        if (amount <= 0) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_POINT_AMOUNT
-            );
-        }
-
-        if (pointBalance < amount) {
-            throw new BusinessException(
-                    ErrorCode.INSUFFICIENT_POINT
-            );
-        }
-
-        pointBalance -= amount;
-    }
-
-    public Member(String email, String password, String name, String phoneNumber, int pointBalance) {
-        this.email = email;
-        this.password = password;
-        this.name = name;
-        this.phoneNumber = phoneNumber;
-        this.pointBalance = pointBalance;
-    }
-
     /**
      * 포인트 사용 (결제 시)
      *
@@ -102,10 +49,13 @@ public class Member extends BaseEntity {
             );
         }
 
-        if (this.pointBalance < amount) {
-            throw new BusinessException(ErrorCode.INSUFFICIENT_POINT);
+        if (pointBalance < amount) {
+            throw new BusinessException(
+                    ErrorCode.INSUFFICIENT_POINT
+            );
         }
-        this.pointBalance -= amount;
+
+        pointBalance -= amount;
     }
 
     /**
@@ -114,14 +64,16 @@ public class Member extends BaseEntity {
      * @param amount 적립할 포인트
      */
     public void earnPoint(int amount) {
+
         if (amount <= 0) {
             throw new BusinessException(
                     ErrorCode.INVALID_POINT_AMOUNT
             );
         }
 
-        this.pointBalance += amount;
+        pointBalance += amount;
     }
+
 
     /**
      * 포인트 복구 (환불 시 사용분 반환)
@@ -146,13 +98,30 @@ public class Member extends BaseEntity {
      * @param amount 회수할 포인트
      */
     public void cancelEarnPoint(int amount) {
+
         if (amount <= 0) {
             throw new BusinessException(
                     ErrorCode.INVALID_POINT_AMOUNT
             );
         }
 
-        this.pointBalance -= amount;
+        /*
+        if (pointBalance < amount) {
+            throw new BusinessException(
+                    ErrorCode.INSUFFICIENT_POINT
+            );
+        }
+         */
+
+        pointBalance -= amount;
+    }
+
+    public Member(String email, String password, String name, String phoneNumber, int pointBalance) {
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.phoneNumber = phoneNumber;
+        this.pointBalance = pointBalance;
     }
 }
 

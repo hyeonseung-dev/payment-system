@@ -94,4 +94,11 @@ public class CartService {
         return new UpdateCartResponse(cartItem.getId(), cartItem.getQuantity());
     }
 
+    @Transactional
+    public void removeItem(Long memberId, Long cartItemId) {
+        int deleted = cartItemRepository.deleteByIdAndCart_Member_Id(cartItemId, memberId);
+        if (deleted == 0) {
+            throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
+        }
+    }
 }

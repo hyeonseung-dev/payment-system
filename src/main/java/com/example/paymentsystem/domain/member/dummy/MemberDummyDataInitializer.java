@@ -3,9 +3,11 @@ import com.example.paymentsystem.domain.member.entity.Member;
 import com.example.paymentsystem.domain.member.repository.MemberRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("local")
 @RequiredArgsConstructor
 public class MemberDummyDataInitializer {
 

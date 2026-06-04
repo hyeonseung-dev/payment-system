@@ -3,8 +3,6 @@ package com.example.paymentsystem.domain.product.entity;
 import com.example.paymentsystem.global.common.BaseEntity;
 import com.example.paymentsystem.domain.product.enumtype.ProductCategory;
 import com.example.paymentsystem.domain.product.enumtype.ProductStatus;
-import com.example.paymentsystem.global.error.BusinessException;
-import com.example.paymentsystem.global.error.ErrorCode;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -53,35 +51,6 @@ public class Product extends BaseEntity{
         this.description = description;
         this.category = category;
         this.status = status;
-    }
-
-    public void decreaseStock(int quantity) {
-
-        if (quantity <= 0) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_STOCK_QUANTITY
-            );
-        }
-
-        if (stockQuantity < quantity) {
-            throw new BusinessException(
-                    ErrorCode.INSUFFICIENT_STOCK
-            );
-        }
-
-        stockQuantity -= quantity;
-    }
-
-
-    public void increaseStock(int quantity) {
-
-        if (quantity <= 0) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_STOCK_QUANTITY
-            );
-        }
-
-        stockQuantity += quantity;
     }
 
 }

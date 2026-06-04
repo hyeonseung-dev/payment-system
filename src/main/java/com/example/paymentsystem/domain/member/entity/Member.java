@@ -48,6 +48,13 @@ public class Member extends BaseEntity {
      * @throws BusinessException 잔액 부족 시 {@link ErrorCode#INSUFFICIENT_POINT}
      */
     public void usePoint(int amount) {
+
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
+        }
+
         if (this.pointBalance < amount) {
             throw new BusinessException(ErrorCode.INSUFFICIENT_POINT);
         }
@@ -60,6 +67,12 @@ public class Member extends BaseEntity {
      * @param amount 적립할 포인트
      */
     public void earnPoint(int amount) {
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
+        }
+
         this.pointBalance += amount;
     }
 
@@ -68,7 +81,14 @@ public class Member extends BaseEntity {
      *
      * @param amount 복구할 포인트
      */
-    public void restorePoint(int amount) {
+    public void restoreUsePoint(int amount) {
+
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
+        }
+
         this.pointBalance += amount;
     }
 
@@ -79,6 +99,13 @@ public class Member extends BaseEntity {
      * @param amount 회수할 포인트
      */
     public void cancelEarnPoint(int amount) {
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
+        }
+
         this.pointBalance -= amount;
     }
 }
+

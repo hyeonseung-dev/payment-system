@@ -1,7 +1,5 @@
 package com.example.paymentsystem.domain.member.entity;
 
-import com.example.paymentsystem.global.error.BusinessException;
-import com.example.paymentsystem.global.error.ErrorCode;
 import com.example.paymentsystem.global.common.BaseEntity;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
@@ -23,7 +21,7 @@ public class Member extends BaseEntity {
     @Column(nullable = false, length = 100, unique = true)
     private String email;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String password;
 
     @Column(nullable = false, length = 50)

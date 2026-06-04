@@ -1,5 +1,6 @@
 package com.example.paymentsystem.global.config;
 
+import com.example.paymentsystem.global.security.filter.JwtFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +12,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter;
 
 @Configuration
 @RequiredArgsConstructor
@@ -18,12 +20,13 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 
+    private final JwtFilter jwtFilter;  // ← 주석 해제
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-    
-    // JWT 개발 전 모든 권한 허용을 위해 임시 작성
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -32,11 +35,12 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtFilter, SecurityContextHolderAwareRequestFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",      // 회원가입, 로그인
-                                "/api/products/**",  // 상품 조회 (인증 불필요)
-                                "/api/webhooks/**"   // PortOne 웹훅 (JWT 대신 서명 검증)
+                                "/api/auth/**",
+                                "/api/products/**",
+                                "/api/webhooks/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

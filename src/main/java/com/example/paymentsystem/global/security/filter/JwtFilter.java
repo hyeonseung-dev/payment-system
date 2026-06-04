@@ -61,15 +61,13 @@ public class JwtFilter extends OncePerRequestFilter {
         return null;
     }
 
-    // SecurityContext에 인증 정보 저장
-
     /**
      * SecurityContext에 인증 정보를 저장
      *
      * <p>JWT 검증이 완료된 memberId를 기반으로 인증 객체를 생성하여
      * SecurityContext에 저장합니다.</p>
      *
-     * @param memberId
+     * @param memberId 인증된 회원 ID
      */
     private void setAuthentication(Long memberId) {
         UsernamePasswordAuthenticationToken authentication =

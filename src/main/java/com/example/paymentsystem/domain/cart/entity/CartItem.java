@@ -23,6 +23,10 @@ public class CartItem extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(nullable = false)
+    private Long version = 0L;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
@@ -45,10 +49,6 @@ public class CartItem extends BaseEntity {
 
     public static CartItem create(Cart cart, Product product, int quantity) {
         return new CartItem(product, cart, quantity);
-    }
-
-    public Long getCartId() {
-        return cart.getId();
     }
 
     public Long getProductId() {

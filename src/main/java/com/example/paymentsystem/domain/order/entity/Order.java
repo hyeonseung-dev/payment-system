@@ -21,14 +21,8 @@ public class Order extends BaseEntity {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String orderNumber;
-
     @Column(nullable = false)
     private int totalAmount;
-
-    @Column(nullable = false)
-    private int usePointAmountSnapshot;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

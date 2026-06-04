@@ -3,6 +3,7 @@ package com.example.paymentsystem.domain.point.entity;
 import com.example.paymentsystem.global.common.BaseEntity;
 import jakarta.persistence.*;
 import com.example.paymentsystem.domain.point.enumtype.PointHistoryType;
+import com.example.paymentsystem.domain.member.entity.Member;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -20,8 +21,9 @@ public class PointHistory extends BaseEntity{
     @Column(nullable = false)
     private Long paymentId;
 
-    @Column(nullable = false)
-    private Long memberId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", nullable = false)
+    private Member member;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

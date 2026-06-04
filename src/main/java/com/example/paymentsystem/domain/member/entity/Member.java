@@ -1,5 +1,7 @@
 package com.example.paymentsystem.domain.member.entity;
 
+import com.example.paymentsystem.global.error.BusinessException;
+import com.example.paymentsystem.global.error.ErrorCode;
 import com.example.paymentsystem.global.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -31,21 +33,46 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private int pointBalance = 0;
 
-    public void usePoint(int amout) {
-        if (pointBalance < amout) {
-            throw new IllegalArgumentException("포인트가 부족합니다.");
+    public void usePoint(int amount) {
+
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
         }
 
-        pointBalance -= amout;
+        if (pointBalance < amount) {
+            throw new BusinessException(
+                    ErrorCode.INSUFFICIENT_POINT
+            );
+        }
+
+        pointBalance -= amount;
     }
 
     public void earnPoint(int amount) {
+
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
+        }
+
         pointBalance += amount;
     }
 
     public void cancelEarnPoint(int amount) {
-        if(pointBalance < amount) {
-            throw new IllegalArgumentException("포인트가 부족합니다.");
+
+        if (amount <= 0) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_POINT_AMOUNT
+            );
+        }
+
+        if (pointBalance < amount) {
+            throw new BusinessException(
+                    ErrorCode.INSUFFICIENT_POINT
+            );
         }
 
         pointBalance -= amount;

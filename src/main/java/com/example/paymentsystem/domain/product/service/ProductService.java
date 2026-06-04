@@ -1,6 +1,5 @@
 package com.example.paymentsystem.domain.product.service;
 
-import java.util.function.Supplier;
 import com.example.paymentsystem.domain.product.dto.response.ProductDetailResponse;
 import com.example.paymentsystem.domain.product.dto.response.ProductPageResponse;
 import com.example.paymentsystem.domain.product.dto.response.ProductResponse;

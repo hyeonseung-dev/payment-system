@@ -13,3 +13,10 @@ jwt:
   secret:
     key: ZmRqbHNkYWprZmpkaWFqaWVqNWprbGZua2xqZGxramFrbGpmaWxqZWlqbGFmamxrZGphbDQyNTZqZmRmNDU0OGE0ZDRmNWE0ZmQ0ZjY1YTQ4ZjQ1ZGE0NWZkNDVhZjQ1YTRmNWQ1YWY0YThzZjRkODRhNWY0NWQ0NTFmOGRhc2Zk
   expiration: 86400000
+
+portone:
+  base-url: https://api.portone.io
+  api-secret: test-api-secret
+  store-id: store-test
+  channel-key: channel-key-test
+  webhook-secret: whsec_test

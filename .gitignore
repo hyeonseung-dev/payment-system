@@ -39,3 +39,4 @@ out/
 ### Local application config ###
 src/main/resources/application-local.yml
 src/main/resources/application-local.yaml
+src/main/resources/application.yaml

@@ -1,21 +1,5 @@
 spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/payment_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
-    username: root
-    password: 12345678     # ← 각자 수정
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: create-drop   # ← 로컬은 매번 초기화
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-
-server:
-  port: 8080
-
-jwt:
-  secret:
-    key: SWZ0aGlzZ2V0c3N0b2xlbkl0c2FiaWdwcm9ibGVt...
-  expiration: 86400000
+  application:
+    name: payment-system
+  profiles:
+    default: local

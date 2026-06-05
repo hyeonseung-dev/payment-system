@@ -1,7 +1,9 @@
 package com.example.paymentsystem.domain.payment.facade;
 
+import com.example.paymentsystem.domain.payment.dto.PaymentCancelResponse;
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import com.example.paymentsystem.domain.payment.dto.PaymentConfirmResponse;
+import com.example.paymentsystem.domain.payment.entity.PaymentStatus;
 import com.example.paymentsystem.domain.payment.service.PaymentService;
 import com.example.paymentsystem.domain.payment.service.PaymentCommandService;
 import com.example.paymentsystem.global.error.BusinessException;
@@ -25,6 +27,7 @@ public class PaymentFacade {
 
     private static final String PORTONE_PAID_STATUS = "PAID";
     private static final String PAYMENT_AMOUNT_MISMATCH_CANCEL_REASON = "결제 금액 불일치로 인한 자동 취소";
+    private static final String ALREADY_CANCELLED_MESSAGE = "이미 취소된 결제입니다.";
 
     private final PaymentService paymentService;
     private final PaymentCommandService paymentCommandService;
@@ -97,6 +100,56 @@ public class PaymentFacade {
         return response;
     }
 
+    /**
+     * 결제를 전체 취소한다.
+     *
+     * <p>결제 소유권과 취소 가능 상태를 검증한 뒤 PortOne 결제취소를 요청하고,
+     * 내부 결제 상태를 전체 환불 상태로 변경한다.</p>
+     *
+     * @param memberId 인증 회원 ID
+     * @param paymentId 결제 ID
+     * @param reason 결제취소 사유
+     * @return 결제취소 응답
+     */
+    public PaymentCancelResponse cancelPayment(Long memberId, Long paymentId, String reason) {
+        log.info("결제취소 요청: memberId={}, paymentId={}, reason={}", memberId, paymentId, reason);
+
+        // 결제 + 주문 조회
+        Payment payment = paymentService.findByIdWithOrderAndMember(paymentId);
+        log.info("결제취소 대상 조회 완료: orderId={}, paymentId={}, paymentStatus={}, orderStatus={}",
+                payment.getOrder().getId(), payment.getId(), payment.getStatus(), payment.getOrder().getStatus());
+
+        // 소유권 검증
+        validateOwnership(payment, memberId);
+
+        // 이미 결제취소 완료
+        if (payment.isCancelled()) {
+            log.info("이미 취소된 결제 요청: memberId={}, orderId={}, paymentId={}",
+                    memberId, payment.getOrder().getId(), payment.getId());
+            return PaymentCancelResponse.of(payment, ALREADY_CANCELLED_MESSAGE);
+        }
+
+        // 결제취소 가능 상태 검증
+        validateCancelablePayment(payment);
+
+        Long cancelAmount = payment.getPgAmount();
+
+        // PortOne 결제취소 요청
+        if (cancelAmount > 0) {
+            log.info("PortOne 결제취소 요청: orderId={}, paymentId={}, portonePaymentId={}, cancelAmount={}",
+                    payment.getOrder().getId(), payment.getId(), payment.getPortonePaymentId(), cancelAmount);
+            PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(
+                    payment.getPortonePaymentId(),
+                    cancelAmount,
+                    reason
+            );
+            log.info("PortOne 결제취소 완료: orderId={}, paymentId={}, cancelledAmount={}, cancelStatus={}",
+                    payment.getOrder().getId(), payment.getId(), cancelResponse.cancelledAmount(), cancelResponse.status());
+        }
+
+        return paymentCommandService.cancelPaymentAndOrder(paymentId);
+    }
+
     private void validateOwnership(Payment payment, Long memberId) {
         Long ownerId = payment.getOrder().getMember().getId();
         if (!Objects.equals(ownerId, memberId)) {
@@ -111,6 +164,14 @@ public class PaymentFacade {
             log.warn("PortOne 결제 식별자 불일치: orderId={}, paymentId={}, expectedPortonePaymentId={}, requestPortonePaymentId={}",
                     payment.getOrder().getId(), payment.getId(), payment.getPortonePaymentId(), portonePaymentId);
             throw new BusinessException(ErrorCode.PAYMENT_ID_MISMATCH);
+        }
+    }
+
+    private void validateCancelablePayment(Payment payment) {
+        if (payment.getStatus() != PaymentStatus.PAID) {
+            log.warn("결제취소 불가능 상태: orderId={}, paymentId={}, paymentStatus={}",
+                    payment.getOrder().getId(), payment.getId(), payment.getStatus());
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
         }
     }
 

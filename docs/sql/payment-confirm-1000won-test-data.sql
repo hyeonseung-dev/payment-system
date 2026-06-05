@@ -1,10 +1,12 @@
 -- 결제 확정 API 1,000원 로컬 테스트용 SQL
 -- PortOne 결제창 테스트 금액을 1,000원으로 낮춰 확인할 때 사용한다.
 
+USE payment_db;
+
 SET @member_id = 1;
 SET @product_name = '1000원 결제 테스트 상품';
-SET @order_number = 'ORDER-TEST-PAYMENT-1000';
-SET @portone_payment_id = 'pay_test_1000';
+SET @order_number = 'ORDER-TEST-PAYMENT-1000-002';
+SET @portone_payment_id = 'pay_test_1000_002';
 SET @total_amount = 1000;
 SET @point_amount = 0;
 SET @pg_amount = 1000;

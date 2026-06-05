@@ -1,6 +1,10 @@
 package com.example.paymentsystem.domain.order.entity;
 
+import com.example.paymentsystem.domain.cart.entity.CartItem;
+import com.example.paymentsystem.domain.product.entity.Product;
 import com.example.paymentsystem.global.common.BaseEntity;
+import com.example.paymentsystem.global.error.BusinessException;
+import com.example.paymentsystem.global.error.ErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -34,4 +38,21 @@ public class OrderItem extends BaseEntity {
 
     @Column(nullable = false)
     private int quantity;
+
+    private OrderItem(Order order, Product product, int quantity) {
+        if (quantity < 1) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+
+        this.order = order;
+        this.productId = product.getId();
+        this.productNameSnapshot = product.getName();
+        this.productPriceSnapshot = product.getPrice();
+        this.quantity = quantity;
+    }
+
+    public static OrderItem createSnapshot(Order order, CartItem cartItem) {
+        // 장바구니 상품 기준으로 주문 상품 스냅샷을 생성한다.
+        return new OrderItem(order, cartItem.getProduct(), cartItem.getQuantity());
+    }
 }

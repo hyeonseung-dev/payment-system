@@ -1,6 +1,7 @@
 package com.example.paymentsystem.global.security.filter;
 
 import com.example.paymentsystem.global.security.jwt.JwtUtil;
+import com.example.paymentsystem.global.security.jwt.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +23,7 @@ import java.util.List;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(
@@ -34,7 +36,10 @@ public class JwtFilter extends OncePerRequestFilter {
         String token = resolveToken(request);
 
         // 2. 토큰 검증 후 SecurityContext에 저장
-        if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
+        if (StringUtils.hasText(token)
+                && !tokenBlacklistService.isBlacklisted(token)
+                && jwtUtil.validateToken(token)
+        ) {
             Long memberId = jwtUtil.getMemberId(token);
             setAuthentication(memberId);
         }

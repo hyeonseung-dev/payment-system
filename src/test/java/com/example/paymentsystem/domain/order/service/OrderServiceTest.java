@@ -321,6 +321,24 @@ class OrderServiceTest {
         verify(paymentRepository, never()).save(any(Payment.class));
     }
 
+    private CartItem createCartItemFixture(
+            Long cartItemId,
+            Long productId,
+            int price,
+            int stockQuantity,
+            int quantity
+    ) {
+        // 주문 테스트에 필요한 회원, 상품, 장바구니, 장바구니 상품을 한 번에 만든다.
+        Member member = createMemberWithPoint(10_000);
+        Product product = createProduct(productId, "아이폰 케이스", price, stockQuantity);
+        Cart cart = Cart.create(member);
+        CartItem cartItem = CartItem.create(cart, product, quantity);
+
+        setId(cartItem, cartItemId);
+
+        return cartItem;
+    }
+
     @Test
     void 상품_주문_생성_시_재고가_부족하면_예외가_발생한다() {
         // given
@@ -379,24 +397,6 @@ class OrderServiceTest {
 
         verify(orderRepository, never()).save(any(Order.class));
         verify(paymentRepository, never()).save(any(Payment.class));
-    }
-
-    private CartItem createCartItemFixture(
-            Long cartItemId,
-            Long productId,
-            int price,
-            int stockQuantity,
-            int quantity
-    ) {
-        // 주문 테스트에 필요한 회원, 상품, 장바구니, 장바구니 상품을 한 번에 만든다.
-        Member member = createMemberWithPoint(10_000);
-        Product product = createProduct(productId, "아이폰 케이스", price, stockQuantity);
-        Cart cart = Cart.create(member);
-        CartItem cartItem = CartItem.create(cart, product, quantity);
-
-        setId(cartItem, cartItemId);
-
-        return cartItem;
     }
 
     private Product createProduct(Long id, String name, int price, int stockQuantity) {

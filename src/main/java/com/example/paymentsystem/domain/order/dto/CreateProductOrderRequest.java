@@ -15,7 +15,7 @@ public record CreateProductOrderRequest(
         @PositiveOrZero(message = "사용 포인트는 0이상이어야 합니다.")
         Integer pointAmount
 ) {
-    public int getusePointAmount() {
+    public int getUsePointAmount() {
         return pointAmount == null ? 0 : pointAmount;
     }
 }

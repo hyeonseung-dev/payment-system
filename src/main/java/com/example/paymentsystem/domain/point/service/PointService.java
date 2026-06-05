@@ -43,7 +43,7 @@ public class PointService {
             int page,
             int size
     ) {
-        if (page < 0) {
+        if (page < 0 || size < 1) {
             throw new BusinessException(
                     ErrorCode.INVALID_INPUT
             );

@@ -1,6 +1,5 @@
 package com.example.paymentsystem.domain.point.controller;
 
-
 import com.example.paymentsystem.domain.point.dto.response.PointBalanceResponse;
 import com.example.paymentsystem.domain.point.service.PointService;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,7 @@
-package com.example.paymentsystem.infra.portone;
+package com.example.paymentsystem.infra.portone.client;
+
+import com.example.paymentsystem.infra.portone.dto.PortOneCancelResponse;
+import com.example.paymentsystem.infra.portone.dto.PortOnePaymentResponse;
 
 /**
  * PortOne 결제 API 연동을 담당하는 클라이언트 인터페이스이다.

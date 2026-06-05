@@ -2,6 +2,8 @@ package com.example.paymentsystem.domain.payment.repository;
 
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
@@ -11,12 +13,19 @@ import java.util.Optional;
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     /**
-     * 주문 ID로 결제 정보를 조회한다.
+     * 주문 ID로 주문 정보와 함께 결제 정보를 조회한다.
      *
      * @param orderId 주문 ID
-     * @return 결제 정보
+     * @return 주문 정보가 포함된 결제 정보
      */
-    Optional<Payment> findByOrderId(Long orderId);
+    @Query("""
+            select p
+            from Payment p
+            join fetch p.order o
+            join fetch o.member
+            where p.order.id = :orderId
+            """)
+    Optional<Payment> findByOrderIdWithOrder(@Param("orderId") Long orderId);
 
     /**
      * PortOne 결제 식별자로 결제 정보를 조회한다.

@@ -63,9 +63,9 @@ public class CartService {
             cartItem.addQuantity(quantity);
         }
 
-        cartItemRepository.save(cartItem);
+        CartItem save = cartItemRepository.save(cartItem);
 
-        return cartItem.getId();
+        return save.getId();
     }
 
     private Cart getOrCreateCart(Long memberId) {

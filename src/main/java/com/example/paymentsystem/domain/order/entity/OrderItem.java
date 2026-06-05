@@ -55,4 +55,9 @@ public class OrderItem extends BaseEntity {
         // 장바구니 상품 기준으로 주문 상품 스냅샷을 생성한다.
         return new OrderItem(order, cartItem.getProduct(), cartItem.getQuantity());
     }
+
+    public static OrderItem createProductSnapshot(Order order, Product product, int quantity) {
+        // 상품 바로 주문에서는 CartItem이 없으므로 Product와 quantity로 스냅샷을 생성한다.
+        return new OrderItem(order, product, quantity);
+    }
 }

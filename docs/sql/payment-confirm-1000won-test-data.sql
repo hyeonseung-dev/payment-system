@@ -5,8 +5,8 @@ USE payment_db;
 
 SET @member_id = 1;
 SET @product_name = '1000원 결제 테스트 상품';
-SET @order_number = 'ORDER-TEST-PAYMENT-1000-002';
-SET @portone_payment_id = 'pay_test_1000_002';
+SET @order_number = 'ORDER-TEST-PAYMENT-1000-005';
+SET @portone_payment_id = 'pay_test_1000_005';
 SET @total_amount = 1000;
 SET @point_amount = 0;
 SET @pg_amount = 1000;

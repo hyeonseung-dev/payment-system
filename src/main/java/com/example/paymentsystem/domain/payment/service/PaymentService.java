@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 /**
  * 결제 생성과 조회를 담당하는 서비스이다.
@@ -72,6 +73,31 @@ public class PaymentService {
     public Payment findByIdWithOrderAndMember(Long paymentId) {
         return paymentRepository.findByIdWithOrderAndMember(paymentId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+    }
+
+    /**
+     * PortOne 결제 식별자로 주문과 회원 정보가 포함된 Payment를 조회한다.
+     *
+     * @param portonePaymentId PortOne 결제 식별자
+     * @return 주문과 회원 정보가 포함된 결제 정보
+     */
+    @Transactional(readOnly = true)
+    public Payment findByPortonePaymentIdWithOrderAndMember(String portonePaymentId) {
+        return paymentRepository.findByPortonePaymentIdWithOrderAndMember(portonePaymentId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+    }
+
+    /**
+     * PortOne 결제 식별자로 주문과 회원 정보가 포함된 Payment를 조회한다.
+     *
+     * <p>웹훅 이력은 Payment를 찾지 못한 경우에도 남길 수 있어야 하므로 Optional로 반환한다.</p>
+     *
+     * @param portonePaymentId PortOne 결제 식별자
+     * @return 주문과 회원 정보가 포함된 결제 정보
+     */
+    @Transactional(readOnly = true)
+    public Optional<Payment> findOptionalByPortonePaymentIdWithOrderAndMember(String portonePaymentId) {
+        return paymentRepository.findByPortonePaymentIdWithOrderAndMember(portonePaymentId);
     }
 
     /**

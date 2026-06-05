@@ -85,10 +85,11 @@ public class WebhookEventService {
      * 웹훅 이벤트를 무시 상태로 변경한다.
      *
      * @param eventId 웹훅 이벤트 ID
+     * @param reason 무시 사유
      */
     @Transactional
-    public void ignoreEvent(Long eventId) {
-        findById(eventId).ignore(LocalDateTime.now());
+    public void ignoreEvent(Long eventId, String reason) {
+        findById(eventId).ignore(reason, LocalDateTime.now());
     }
 
     /**

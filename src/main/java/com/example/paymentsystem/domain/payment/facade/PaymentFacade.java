@@ -26,6 +26,8 @@ import java.util.Objects;
 public class PaymentFacade {
 
     private static final String PORTONE_PAID_STATUS = "PAID";
+    private static final String PORTONE_CANCELLED_STATUS = "CANCELLED";
+    private static final String PORTONE_CANCELED_STATUS = "CANCELED";
     private static final String PAYMENT_AMOUNT_MISMATCH_CANCEL_REASON = "결제 금액 불일치로 인한 자동 취소";
     private static final String ALREADY_CANCELLED_MESSAGE = "이미 취소된 결제입니다.";
 
@@ -101,6 +103,63 @@ public class PaymentFacade {
     }
 
     /**
+     * 웹훅으로 수신한 결제를 확정한다.
+     *
+     * <p>웹훅은 JWT 인증 회원이 없으므로 소유권 검증을 수행하지 않는다.
+     * 대신 서버에 저장된 Payment를 PortOne 결제 식별자로 조회하고, PortOne API 재조회 결과의
+     * 결제 상태와 금액을 검증한 뒤 기존 결제 완료 처리 흐름을 호출한다.</p>
+     *
+     * @param portonePaymentId PortOne 결제 식별자
+     * @return 결제 확정 응답
+     */
+    public PaymentConfirmResponse confirmPaymentFromWebhook(String portonePaymentId) {
+        log.info("웹훅 결제 확정 요청: portonePaymentId={}", portonePaymentId);
+
+        // PortOne 결제 식별자로 결제 + 주문 조회
+        Payment payment = paymentService.findByPortonePaymentIdWithOrderAndMember(portonePaymentId);
+        Long orderId = payment.getOrder().getId();
+        log.info("웹훅 결제 조회 완료: orderId={}, paymentId={}, paymentStatus={}, orderStatus={}",
+                orderId, payment.getId(), payment.getStatus(), payment.getOrder().getStatus());
+
+        // 이미 결제 완료
+        if (payment.isPaid()) {
+            log.info("이미 완료된 웹훅 결제 확정 요청: orderId={}, paymentId={}", orderId, payment.getId());
+            return PaymentConfirmResponse.from(payment);
+        }
+
+        // PortOne 결제 정보 재조회
+        if (payment.getPgAmount() > 0) {
+            log.info("웹훅 PortOne 결제 조회 시작: orderId={}, paymentId={}, portonePaymentId={}",
+                    orderId, payment.getId(), portonePaymentId);
+            PortOnePaymentResponse portOnePayment = portOneClient.getPayment(portonePaymentId);
+            log.info("웹훅 PortOne 결제 조회 완료: orderId={}, paymentId={}, portoneStatus={}, paidAmount={}",
+                    orderId, payment.getId(), portOnePayment.status(), portOnePayment.paidAmount());
+
+            // 결제 상태 성공 검증
+            if (!isPortOnePaymentPaid(portOnePayment)) {
+                log.warn("웹훅 PortOne 결제 미완료: orderId={}, paymentId={}, portonePaymentId={}, portoneStatus={}",
+                        orderId, payment.getId(), portonePaymentId, portOnePayment.status());
+                paymentCommandService.failPaymentAndOrder(orderId);
+                throw new BusinessException(ErrorCode.PAYMENT_NOT_PAID);
+            }
+
+            // 금액 일치 검증
+            if (!isPaymentAmountMatched(portOnePayment, payment)) {
+                log.warn("웹훅 결제 금액 불일치: orderId={}, paymentId={}, expectedPgAmount={}, actualPaidAmount={}",
+                        orderId, payment.getId(), payment.getPgAmount(), portOnePayment.paidAmount());
+                cancelMismatchedPayment(portonePaymentId, portOnePayment);
+                paymentCommandService.failPaymentAndOrder(orderId);
+                throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
+            }
+        }
+
+        PaymentConfirmResponse response = paymentCommandService.approvePaymentAndOrder(orderId);
+        log.info("웹훅 결제 확정 완료: orderId={}, paymentId={}, paymentStatus={}, orderStatus={}",
+                response.orderId(), response.paymentId(), response.paymentStatus(), response.orderStatus());
+        return response;
+    }
+
+    /**
      * 결제를 전체 취소한다.
      *
      * <p>결제 소유권과 취소 가능 상태를 검증한 뒤 PortOne 결제취소를 요청하고,
@@ -150,6 +209,53 @@ public class PaymentFacade {
         return paymentCommandService.cancelPaymentAndOrder(paymentId);
     }
 
+    /**
+     * 웹훅으로 수신한 결제취소 상태를 내부 결제 상태에 반영한다.
+     *
+     * <p>취소 웹훅은 PortOne에서 이미 취소가 발생한 뒤 전달되는 알림이므로
+     * PortOne 취소 API를 다시 호출하지 않는다. PortOne 결제 정보를 재조회해 취소 상태를 확인하고,
+     * 내부 Payment가 아직 PAID 상태인 경우에만 취소 상태로 변경한다.</p>
+     *
+     * @param portonePaymentId PortOne 결제 식별자
+     * @return 결제취소 응답
+     */
+    public PaymentCancelResponse cancelPaymentFromWebhook(String portonePaymentId) {
+        log.info("웹훅 결제취소 동기화 요청: portonePaymentId={}", portonePaymentId);
+
+        // PortOne 결제 식별자로 결제 + 주문 조회
+        Payment payment = paymentService.findByPortonePaymentIdWithOrderAndMember(portonePaymentId);
+        Long orderId = payment.getOrder().getId();
+        log.info("웹훅 결제취소 대상 조회 완료: orderId={}, paymentId={}, paymentStatus={}, orderStatus={}",
+                orderId, payment.getId(), payment.getStatus(), payment.getOrder().getStatus());
+
+        // 이미 결제취소 완료
+        if (payment.isCancelled()) {
+            log.info("이미 취소된 웹훅 결제취소 요청: orderId={}, paymentId={}", orderId, payment.getId());
+            return PaymentCancelResponse.of(payment, ALREADY_CANCELLED_MESSAGE);
+        }
+
+        // PortOne 결제 정보 재조회
+        if (payment.getPgAmount() > 0) {
+            log.info("웹훅 PortOne 결제취소 상태 조회 시작: orderId={}, paymentId={}, portonePaymentId={}",
+                    orderId, payment.getId(), portonePaymentId);
+            PortOnePaymentResponse portOnePayment = portOneClient.getPayment(portonePaymentId);
+            log.info("웹훅 PortOne 결제취소 상태 조회 완료: orderId={}, paymentId={}, portoneStatus={}, paidAmount={}",
+                    orderId, payment.getId(), portOnePayment.status(), portOnePayment.paidAmount());
+
+            if (!isPortOnePaymentCancelled(portOnePayment)) {
+                log.warn("웹훅 PortOne 결제취소 상태 불일치: orderId={}, paymentId={}, portonePaymentId={}, portoneStatus={}",
+                        orderId, payment.getId(), portonePaymentId, portOnePayment.status());
+                throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
+            }
+        }
+
+        validateCancelablePayment(payment);
+        PaymentCancelResponse response = paymentCommandService.cancelPaymentAndOrder(payment.getId());
+        log.info("웹훅 결제취소 동기화 완료: orderId={}, paymentId={}, paymentStatus={}, orderStatus={}",
+                response.orderId(), response.paymentId(), response.paymentStatus(), response.orderStatus());
+        return response;
+    }
+
     private void validateOwnership(Payment payment, Long memberId) {
         Long ownerId = payment.getOrder().getMember().getId();
         if (!Objects.equals(ownerId, memberId)) {
@@ -177,6 +283,11 @@ public class PaymentFacade {
 
     private boolean isPortOnePaymentPaid(PortOnePaymentResponse portOnePayment) {
         return PORTONE_PAID_STATUS.equals(portOnePayment.status());
+    }
+
+    private boolean isPortOnePaymentCancelled(PortOnePaymentResponse portOnePayment) {
+        return PORTONE_CANCELLED_STATUS.equals(portOnePayment.status())
+                || PORTONE_CANCELED_STATUS.equals(portOnePayment.status());
     }
 
     private boolean isPaymentAmountMatched(PortOnePaymentResponse portOnePayment, Payment payment) {

@@ -51,6 +51,21 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByPortonePaymentId(String portonePaymentId);
 
     /**
+     * PortOne 결제 식별자로 주문과 회원 정보가 포함된 결제 정보를 조회한다.
+     *
+     * @param portonePaymentId PortOne 결제 식별자
+     * @return 주문과 회원 정보가 포함된 결제 정보
+     */
+    @Query("""
+            select p
+            from Payment p
+            join fetch p.order o
+            join fetch o.member
+            where p.portonePaymentId = :portonePaymentId
+            """)
+    Optional<Payment> findByPortonePaymentIdWithOrderAndMember(@Param("portonePaymentId") String portonePaymentId);
+
+    /**
      * PortOne 결제 식별자의 존재 여부를 확인한다.
      *
      * @param portonePaymentId PortOne 결제 식별자

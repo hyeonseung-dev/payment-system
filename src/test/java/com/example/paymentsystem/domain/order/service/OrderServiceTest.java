@@ -7,11 +7,13 @@ import com.example.paymentsystem.domain.member.entity.Member;
 import com.example.paymentsystem.domain.member.repository.MemberRepository;
 import com.example.paymentsystem.domain.order.dto.*;
 import com.example.paymentsystem.domain.order.entity.Order;
+import com.example.paymentsystem.domain.order.entity.OrderItem;
 import com.example.paymentsystem.domain.order.repository.OrderItemRepository;
 import com.example.paymentsystem.domain.order.repository.OrderRepository;
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import com.example.paymentsystem.domain.payment.repository.PaymentRepository;
 import com.example.paymentsystem.domain.product.entity.Product;
+import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 
+import static com.example.paymentsystem.domain.order.enums.OrderStatus.PAYMENT_PENDING;
 import static com.example.paymentsystem.domain.product.enumtype.ProductCategory.FOOD;
 import static com.example.paymentsystem.domain.product.enumtype.ProductStatus.FOR_SALE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,6 +55,8 @@ class OrderServiceTest {
     private OrderNumberGenerator orderNumberGenerator;
     @Mock
     private PaymentRepository paymentRepository;
+    @Mock
+    private ProductRepository productRepository;
 
     Long memberId = 1L;
     Long cartItemId = 1L;
@@ -78,7 +83,7 @@ class OrderServiceTest {
         // given
         CreateOrderRequest request = new CreateOrderRequest(cartItemIds, 0);
 
-        when(memberRepository.findById(memberId)).thenReturn(Optional.empty());
+        when(memberRepository.findByIdWithLock(memberId)).thenReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> orderService.createOrder(memberId, request))
@@ -162,7 +167,7 @@ class OrderServiceTest {
         Order order = mock(Order.class);
         Payment payment = mock(Payment.class);
 
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(memberRepository.findByIdWithLock(memberId)).thenReturn(Optional.of(member));
         when(cartItemRepository.findAllByIdsAndMemberIdWithLock(cartItemIds, memberId))
                 .thenReturn(List.of(cartItem));
         when(orderNumberGenerator.generate()).thenReturn("ORD-20260605-000001");
@@ -204,7 +209,7 @@ class OrderServiceTest {
         Member member = createMemberWithPoint(200000);
         CartItem cartItem = createCartItemFixture(cartItemId, productId, 15000, 10, 2);
 
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(memberRepository.findByIdWithLock(memberId)).thenReturn(Optional.of(member));
         when(cartItemRepository.findAllByIdsAndMemberIdWithLock(cartItemIds, memberId))
                 .thenReturn(List.of(cartItem));
 
@@ -228,7 +233,7 @@ class OrderServiceTest {
         Member member = createMemberWithPoint(1_000);
         CartItem cartItem = createCartItemFixture(cartItemId, productId, 15_000, 10, 2);
 
-        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(memberRepository.findByIdWithLock(memberId)).thenReturn(Optional.of(member));
         when(cartItemRepository.findAllByIdsAndMemberIdWithLock(cartItemIds, memberId))
                 .thenReturn(List.of(cartItem));
 
@@ -236,6 +241,81 @@ class OrderServiceTest {
         assertThatThrownBy(() -> orderService.createOrder(memberId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(ErrorCode.INSUFFICIENT_POINT.getMessage());
+
+        verify(orderRepository, never()).save(any(Order.class));
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    void 상품_주문_생성에_성공하면_포인트와_재고를_차감하고_결제대기_Payment를_생성한다() {
+        // given
+        CreateProductOrderRequest request = new CreateProductOrderRequest(productId, 2, 5_000);
+
+        Member member = createMemberWithPoint(10_000);
+        Product product = createProduct(productId, "아이폰 케이스", 15_000, 10);
+
+        Order order = mock(Order.class);
+        Payment payment = mock(Payment.class);
+
+        // 상품 바로 주문은 회원과 상품을 비관적 락으로 조회한다.
+        when(memberRepository.findByIdWithLock(memberId)).thenReturn(Optional.of(member));
+        when(productRepository.findByIdWithLock(productId)).thenReturn(Optional.of(product));
+
+        // 주문번호 생성 결과를 고정해서 응답 검증을 쉽게 한다.
+        when(orderNumberGenerator.generate()).thenReturn("ORD-20260605-000001");
+
+        // 저장된 주문과 결제 객체를 mock으로 반환한다.
+        when(orderRepository.save(any(Order.class))).thenReturn(order);
+        when(paymentRepository.save(any(Payment.class))).thenReturn(payment);
+
+        // 응답 DTO 생성에 필요한 주문 값이다.
+        when(order.getId()).thenReturn(1L);
+        when(order.getOrderNumber()).thenReturn("ORD-20260605-000001");
+        when(order.getStatus()).thenReturn(PAYMENT_PENDING);
+        when(order.getTotalAmount()).thenReturn(30_000);
+
+        // 응답 DTO 생성에 필요한 결제 값이다.
+        when(payment.getPortonePaymentId()).thenReturn("pay_12345678");
+        when(payment.getPgAmount()).thenReturn(25_000L);
+
+        // when
+        CreateOrderResponse response = orderService.createProductOrder(memberId, request);
+
+        // then
+        assertThat(response.orderId()).isEqualTo(1L);
+        assertThat(response.orderNumber()).isEqualTo("ORD-20260605-000001");
+        assertThat(response.portonePaymentId()).isEqualTo("pay_12345678");
+        assertThat(response.orderStatus()).isEqualTo(PAYMENT_PENDING);
+        assertThat(response.totalAmount()).isEqualTo(30_000);
+        assertThat(response.pointAmount()).isEqualTo(5_000);
+        assertThat(response.pgAmount()).isEqualTo(25_000);
+
+        // 포인트와 재고가 실제로 차감됐는지 확인한다.
+        assertThat(member.getPointBalance()).isEqualTo(5_000);
+        assertThat(product.getStockQuantity()).isEqualTo(8);
+
+        // 상품 바로 주문은 장바구니를 사용하지 않는다.
+        verify(cartItemRepository, never()).deleteAll(anyList());
+
+        // 주문 상품 스냅샷과 결제대기 Payment가 저장됐는지 확인한다.
+        verify(orderItemRepository).save(any(OrderItem.class));
+        verify(paymentRepository).save(any(Payment.class));
+    }
+
+    @Test
+    void 상품_주문_생성_시_상품을_찾을_수_없으면_예외가_발생한다() {
+        // given
+        CreateProductOrderRequest request = new CreateProductOrderRequest(productId, 2, 0);
+
+        Member member = createMemberWithPoint(10_000);
+
+        when(memberRepository.findByIdWithLock(memberId)).thenReturn(Optional.of(member));
+        when(productRepository.findByIdWithLock(productId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> orderService.createProductOrder(memberId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.PRODUCT_NOT_FOUND.getMessage());
 
         verify(orderRepository, never()).save(any(Order.class));
         verify(paymentRepository, never()).save(any(Payment.class));
@@ -257,6 +337,66 @@ class OrderServiceTest {
         setId(cartItem, cartItemId);
 
         return cartItem;
+    }
+
+    @Test
+    void 상품_주문_생성_시_재고가_부족하면_예외가_발생한다() {
+        // given
+        CreateProductOrderRequest request = new CreateProductOrderRequest(productId, 20, 0);
+
+        Member member = createMemberWithPoint(10_000);
+        Product product = createProduct(productId, "아이폰 케이스", 15_000, 10);
+
+        when(memberRepository.findByIdWithLock(memberId)).thenReturn(Optional.of(member));
+        when(productRepository.findByIdWithLock(productId)).thenReturn(Optional.of(product));
+
+        // when & then
+        assertThatThrownBy(() -> orderService.createProductOrder(memberId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.INSUFFICIENT_STOCK.getMessage());
+
+        verify(orderRepository, never()).save(any(Order.class));
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    void 상품_주문_금액보다_많은_포인트를_사용하면_예외가_발생한다() {
+        // given
+        CreateProductOrderRequest request = new CreateProductOrderRequest(productId, 2, 40_000);
+
+        Member member = createMemberWithPoint(100_000);
+        Product product = createProduct(productId, "아이폰 케이스", 15_000, 10);
+
+        when(memberRepository.findByIdWithLock(memberId)).thenReturn(Optional.of(member));
+        when(productRepository.findByIdWithLock(productId)).thenReturn(Optional.of(product));
+
+        // when & then
+        assertThatThrownBy(() -> orderService.createProductOrder(memberId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.INVALID_POINT_AMOUNT.getMessage());
+
+        verify(orderRepository, never()).save(any(Order.class));
+        verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    void 상품_주문_생성_시_보유_포인트가_부족하면_예외가_발생한다() {
+        // given
+        CreateProductOrderRequest request = new CreateProductOrderRequest(productId, 2, 5_000);
+
+        Member member = createMemberWithPoint(1_000);
+        Product product = createProduct(productId, "아이폰 케이스", 15_000, 10);
+
+        when(memberRepository.findByIdWithLock(memberId)).thenReturn(Optional.of(member));
+        when(productRepository.findByIdWithLock(productId)).thenReturn(Optional.of(product));
+
+        // when & then
+        assertThatThrownBy(() -> orderService.createProductOrder(memberId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.INSUFFICIENT_POINT.getMessage());
+
+        verify(orderRepository, never()).save(any(Order.class));
+        verify(paymentRepository, never()).save(any(Payment.class));
     }
 
     private Product createProduct(Long id, String name, int price, int stockQuantity) {

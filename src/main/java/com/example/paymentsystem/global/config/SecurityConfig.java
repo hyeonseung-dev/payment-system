@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, SecurityContextHolderAwareRequestFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/payments/confirm").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/payments/*/cancel").authenticated()
                         .requestMatchers(HttpMethod.GET, "/payment-test.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/config.js").permitAll()
                         .requestMatchers(

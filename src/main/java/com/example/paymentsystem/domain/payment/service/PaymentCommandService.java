@@ -1,5 +1,6 @@
 package com.example.paymentsystem.domain.payment.service;
 
+import com.example.paymentsystem.domain.payment.dto.PaymentCancelResponse;
 import com.example.paymentsystem.domain.payment.dto.PaymentConfirmResponse;
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,8 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class PaymentCommandService {
+
+    private static final String PAYMENT_CANCELLED_MESSAGE = "결제가 취소되었습니다.";
 
     private final PaymentService paymentService;
 
@@ -81,6 +84,45 @@ public class PaymentCommandService {
         PaymentConfirmResponse response = PaymentConfirmResponse.from(payment);
         log.info("결제 승인 처리 완료: orderId={}, paymentId={}, paymentStatus={}, orderStatus={}",
                 response.orderId(), response.paymentId(), response.paymentStatus(), response.orderStatus());
+        return response;
+    }
+
+    /**
+     * 결제취소에 따른 내부 상태 변경을 처리한다.
+     *
+     * <p>PortOne 결제취소가 완료된 뒤 호출한다.
+     * Payment와 Order는 취소 상태로 변경하고, 재고/포인트 복구는 각 도메인 기능과 연결한다.</p>
+     *
+     * @param paymentId 결제 ID
+     * @return 결제취소 응답
+     */
+    @Transactional
+    public PaymentCancelResponse cancelPaymentAndOrder(Long paymentId) {
+        Payment payment = paymentService.findByIdWithOrderAndMember(paymentId);
+        log.info("결제취소 내부 처리 시작: orderId={}, paymentId={}, paymentStatus={}, orderStatus={}",
+                payment.getOrder().getId(), payment.getId(), payment.getStatus(), payment.getOrder().getStatus());
+
+        // Payment 취소
+        paymentService.cancelPayment(payment);
+        log.info("Payment 취소 처리 완료: orderId={}, paymentId={}",
+                payment.getOrder().getId(), payment.getId());
+
+        // 주문취소
+        // TODO: OrderService 구현 후 주문 취소 처리 연결
+
+        // 재고복구
+        // TODO: OrderItem 조회와 Product 재고 복구 처리 연결
+
+        // 포인트 복구/회수
+        // TODO: PointService 구현 후 사용 포인트 복구와 적립 포인트 회수 처리 연결
+
+        Payment cancelledPayment = paymentService.findByIdWithOrderAndMember(paymentId);
+        PaymentCancelResponse response = PaymentCancelResponse.of(
+                cancelledPayment,
+                PAYMENT_CANCELLED_MESSAGE
+        );
+        log.info("결제취소 내부 처리 완료: orderId={}, paymentId={}, paymentStatus={}",
+                response.orderId(), response.paymentId(), response.paymentStatus());
         return response;
     }
 }

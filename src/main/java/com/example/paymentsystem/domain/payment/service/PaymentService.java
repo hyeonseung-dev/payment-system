@@ -63,6 +63,18 @@ public class PaymentService {
     }
 
     /**
+     * 결제 ID로 주문과 회원 정보가 포함된 Payment를 조회한다.
+     *
+     * @param paymentId 결제 ID
+     * @return 주문과 회원 정보가 포함된 결제 정보
+     */
+    @Transactional(readOnly = true)
+    public Payment findByIdWithOrderAndMember(Long paymentId) {
+        return paymentRepository.findByIdWithOrderAndMember(paymentId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+    }
+
+    /**
      * Payment를 결제 완료 상태로 변경한다.
      *
      * @param payment 결제 정보
@@ -83,6 +95,17 @@ public class PaymentService {
     public void failPayment(Payment payment) {
         Payment managedPayment = findById(payment.getId());
         managedPayment.fail();
+    }
+
+    /**
+     * Payment를 취소 상태로 변경한다.
+     *
+     * @param payment 결제 정보
+     */
+    @Transactional
+    public void cancelPayment(Payment payment) {
+        Payment managedPayment = findById(payment.getId());
+        managedPayment.cancel();
     }
 
     private Payment findById(Long paymentId) {

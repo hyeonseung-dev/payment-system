@@ -1,5 +1,7 @@
 package com.example.paymentsystem.domain.payment.controller;
 
+import com.example.paymentsystem.domain.payment.dto.PaymentCancelRequest;
+import com.example.paymentsystem.domain.payment.dto.PaymentCancelResponse;
 import com.example.paymentsystem.domain.payment.dto.PaymentConfirmRequest;
 import com.example.paymentsystem.domain.payment.dto.PaymentConfirmResponse;
 import com.example.paymentsystem.domain.payment.facade.PaymentFacade;
@@ -8,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,6 +42,29 @@ public class PaymentController {
                 memberId,
                 request.orderId(),
                 request.portonePaymentId()
+        );
+
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    /**
+     * 결제를 전체 취소한다.
+     *
+     * @param memberId 인증 회원 ID
+     * @param paymentId 결제 ID
+     * @param request 결제취소 요청
+     * @return 결제취소 응답
+     */
+    @PostMapping("/{paymentId}/cancel")
+    public ResponseEntity<ApiResponse<PaymentCancelResponse>> cancelPayment(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long paymentId,
+            @Valid @RequestBody PaymentCancelRequest request
+    ) {
+        PaymentCancelResponse response = paymentFacade.cancelPayment(
+                memberId,
+                paymentId,
+                request.reason()
         );
 
         return ResponseEntity.ok(ApiResponse.ok(response));

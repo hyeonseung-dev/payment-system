@@ -8,6 +8,7 @@ import com.example.paymentsystem.domain.member.repository.MemberRepository;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
 import com.example.paymentsystem.global.security.jwt.JwtUtil;
+import com.example.paymentsystem.global.security.jwt.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
     /**
      * 회원가입 처리
@@ -70,6 +72,11 @@ public class AuthService {
 
         // 4. 토큰 반환
         return LoginResponse.of(token);
+    }
+
+    @Transactional
+    public void logout(String token) {
+        tokenBlacklistService.addToBlacklist(token);
     }
 
 }

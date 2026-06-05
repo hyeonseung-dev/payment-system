@@ -1,6 +1,7 @@
 package com.example.paymentsystem.global.config;
 
 import com.example.paymentsystem.global.security.filter.JwtFilter;
+import com.example.paymentsystem.global.security.handler.JwtAuthenticationPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @RequiredArgsConstructor
@@ -20,7 +21,8 @@ import org.springframework.security.web.servletapi.SecurityContextHolderAwareReq
 @EnableMethodSecurity(securedEnabled = true)
 public class SecurityConfig {
 
-    private final JwtFilter jwtFilter;  // ← 주석 해제
+    private final JwtFilter jwtFilter;
+    private final JwtAuthenticationPoint jwtAuthenticationPoint;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -35,13 +37,17 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtFilter, SecurityContextHolderAwareRequestFilter.class)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationPoint)
+                )
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",      // 회원가입, 로그인
+                                "/api/auth/signup",      // 회원가입
+                                "/api/auth/login",    // 로그인
                                 "/api/products/**",  // 상품 조회 (인증 불필요)
                                 "/api/webhooks/**",   // PortOne 웹훅 (JWT 대신 서명 검증)
-                                "/api/**"
+                                "/api/**"    // 임시로 인증 설정 하기 전에 모두 통과
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

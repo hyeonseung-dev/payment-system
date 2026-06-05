@@ -43,10 +43,10 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",      // 회원가입, 로그인
+                                "/api/auth/signup",      // 회원가입
+                                "/api/auth/login",    // 로그인
                                 "/api/products/**",  // 상품 조회 (인증 불필요)
                                 "/api/webhooks/**"   // PortOne 웹훅 (JWT 대신 서명 검증)
-
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

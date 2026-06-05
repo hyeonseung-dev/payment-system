@@ -44,13 +44,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> logout(
             HttpServletRequest request
     ) {
-        // Authorization 헤더에서 토큰 추출
+
         String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) &&
-                bearerToken.startsWith(JwtUtil.BEARER_PREFIX)) {
-            String token = bearerToken.substring(JwtUtil.BEARER_PREFIX.length());
-            authService.logout(token);
-        }
+        String token = bearerToken.substring(JwtUtil.BEARER_PREFIX.length());
+        authService.logout(token);
+
 
         return ResponseEntity.ok(ApiResponse.ok("로그아웃이 완료되었습니다."));
     }

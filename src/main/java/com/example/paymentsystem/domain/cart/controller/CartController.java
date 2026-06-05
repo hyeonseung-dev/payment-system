@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,19 +17,16 @@ public class CartController {
 
     private final CartService cartService;
 
-    // todo JWT 구현 완료 후 memberId는 인증 객체에서 꺼내도록 수정 예정
-    private static final Long MEMBER_ID = 1L;
-
     @GetMapping
-    public ResponseEntity<ApiResponse<CartResponse>> findCartItems() {
-        CartResponse response = cartService.findCartItems(MEMBER_ID);
+    public ResponseEntity<ApiResponse<CartResponse>> findCartItems(@AuthenticationPrincipal Long memberId) {
+        CartResponse response = cartService.findCartItems(memberId);
 
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @PostMapping("/items")
-    public ResponseEntity<ApiResponse<AddCartResponse>> addItem(@Valid @RequestBody AddCartRequest request) {
-        Long addItem = cartService.addItem(MEMBER_ID, request.productId(), request.quantity());
+    public ResponseEntity<ApiResponse<AddCartResponse>> addItem(@AuthenticationPrincipal Long memberId, @Valid @RequestBody AddCartRequest request) {
+        Long addItem = cartService.addItem(memberId, request.productId(), request.quantity());
 
         AddCartResponse response = AddCartResponse.of(
                 addItem,
@@ -40,14 +38,14 @@ public class CartController {
     }
 
     @PatchMapping("/items/{cartItemId}")
-    public ResponseEntity<ApiResponse<UpdateCartResponse>> updateQuantity(@PathVariable Long cartItemId, @Valid @RequestBody UpdateCartRequest request) {
-        UpdateCartResponse response = cartService.updateQuantity(MEMBER_ID, cartItemId, request.quantity());
+    public ResponseEntity<ApiResponse<UpdateCartResponse>> updateQuantity(@AuthenticationPrincipal Long memberId, @PathVariable Long cartItemId, @Valid @RequestBody UpdateCartRequest request) {
+        UpdateCartResponse response = cartService.updateQuantity(memberId, cartItemId, request.quantity());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @DeleteMapping("/items/{cartItemId}")
-    public ResponseEntity<ApiResponse<Void>> removeCartItem(@PathVariable Long cartItemId) {
-        cartService.removeItem(MEMBER_ID, cartItemId);
+    public ResponseEntity<ApiResponse<Void>> removeCartItem(@AuthenticationPrincipal Long memberId, @PathVariable Long cartItemId) {
+        cartService.removeItem(memberId, cartItemId);
         return ResponseEntity.ok(ApiResponse.ok());
     }
 }

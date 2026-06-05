@@ -47,7 +47,7 @@ public enum ErrorCode {
     POINT_NOT_FOUND(HttpStatus.NOT_FOUND,            "POINT_001", "포인트 정보를 찾을 수 없습니다."),
     INSUFFICIENT_POINT(HttpStatus.BAD_REQUEST,       "POINT_002", "포인트 잔액이 부족합니다."),
     POINT_BALANCE_NEGATIVE(HttpStatus.BAD_REQUEST,   "POINT_003", "포인트 잔액이 음수가 될 수 없습니다."),
-    INVALID_POINT_AMOUNT(HttpStatus.BAD_REQUEST, "POINT_004", "포인트 금액은 0보다 커야 합니다."),
+    INVALID_POINT_AMOUNT(HttpStatus.BAD_REQUEST,     "POINT_004", "사용할 수 없는 포인트 금액입니다."),
 
     // ── Payment ─────────────────────────────────────────────
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND,          "PAYMENT_001", "결제 정보를 찾을 수 없습니다."),

@@ -1,7 +1,9 @@
 package com.example.paymentsystem.domain.cart.repository;
 
 import com.example.paymentsystem.domain.cart.entity.CartItem;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,4 +32,7 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
     @Query("SELECT ci FROM CartItem ci join FETCH ci.product join FETCH ci.cart c WHERE ci.id IN :cartItemIds AND c.member.id = :memberId")
     List<CartItem> findAllByIdsAndMemberId(@Param("cartItemIds") List<Long> cartItemIds, @Param("memberId") Long memberId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT ci FROM CartItem ci JOIN FETCH ci.product JOIN FETCH ci.cart c WHERE ci.id IN :cartItemIds AND c.member.id = :memberId")
+    List<CartItem> findAllByIdsAndMemberIdWithLock(@Param("cartItemIds") List<Long> cartItemIds, @Param("memberId") Long memberId);
 }

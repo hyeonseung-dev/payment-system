@@ -7,5 +7,6 @@ public record PointHistoryPageResponse(
         int page,
         int size,
         long totalElements
+
 ) {
 }

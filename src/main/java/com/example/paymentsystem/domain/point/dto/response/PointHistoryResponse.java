@@ -11,5 +11,6 @@ public record PointHistoryResponse(
         Integer amount,
         Integer balanceAfter,
         LocalDateTime createdAt
+
 ) {
 }

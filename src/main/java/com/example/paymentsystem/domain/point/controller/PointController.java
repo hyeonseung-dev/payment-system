@@ -28,4 +28,5 @@ public class PointController {
     ) {
         return pointService.getPointHistories(page, size);
     }
+
 }

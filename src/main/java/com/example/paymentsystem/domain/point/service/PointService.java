@@ -82,4 +82,5 @@ public class PointService {
                 histories.getTotalElements()
         );
     }
+
 }

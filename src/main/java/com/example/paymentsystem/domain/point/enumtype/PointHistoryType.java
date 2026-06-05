@@ -5,4 +5,5 @@ public enum PointHistoryType {
     EARN,
     USE_CANCEL,
     EARN_CANCEL
+
 }

@@ -34,4 +34,5 @@ public class PointHistory extends BaseEntity{
 
     @Column(nullable = false)
     private Integer balanceAfter;
+
 }

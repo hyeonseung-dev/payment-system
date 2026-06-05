@@ -1,4 +1,3 @@
-
 # docs/ERD.md
 
 # ERD

@@ -24,7 +24,7 @@ public class JwtAuthenticationPoint implements AuthenticationEntryPoint {
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
 
-        // 응답 타입을 JSON으로 설정
+        // 응답 타입을 ApiResponse 형식으로 통일
         response.setContentType("application/json;charset=UTF-8");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.getWriter().write(

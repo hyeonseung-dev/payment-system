@@ -16,11 +16,16 @@ import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -83,7 +88,6 @@ public class OrderService {
         Payment payment = createReadyPayment(order, totalAmount, pgAmount);
 
         // 주문에 사용한 장바구니 상품을 소비 처리한다.
-        // 결제 완료할 때 장바구니안에 상품을 삭제할 것인지 아니면 주문이 생성이 되면 장바구니를 비울것인지
         deleteOrderedCartItems(cartItems);
 
         return CreateOrderResponse.of(order, payment, pointAmount);
@@ -126,6 +130,64 @@ public class OrderService {
         Payment payment = createReadyPayment(order, totalAmount, pgAmount);
 
         return CreateOrderResponse.of(order, payment, pointAmount);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderListResponse findOrder(Long memberId, int page, int size) {
+        // JWT 인증 정보가 없으면 주문 목록을 조회할 수 없다.
+        if (memberId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        if (page < 0 || size < 1) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 로그인한 회원의 주문만 최신순으로 조회한다.
+        Page<Order> orderPage = orderRepository.findByMember_IdOrderByCreatedAtDesc(memberId, pageable);
+
+        List<Order> orders = orderPage.getContent();
+
+        // 주문이 없으면 빈 목록을 반환한다.
+        if (orders.isEmpty()) {
+            return OrderListResponse.of(
+                    List.of(),
+                    orderPage.getNumber(),
+                    orderPage.getSize(),
+                    orderPage.getTotalElements(),
+                    orderPage.getTotalPages()
+            );
+        }
+
+        // 주문 ID 목록을 만든다.
+        List<Long> list = orders.stream()
+                .map(Order::getId)
+                .toList();
+
+        // 주문 상품을 한 번에 조회해서 N+1 문제를 피한다.
+        List<OrderItem> orderItems = orderItemRepository.findAllByOrderIds(list);
+
+        // 주문 ID 기준으로 주문 상품을 묶는다.
+        Map<Long, List<OrderItem>> orderItemMap = orderItems.stream()
+                .collect(Collectors.groupingBy(orderItem -> orderItem.getOrder().getId()));
+
+        // 주문 목록 응답 DTO로 변환한다.
+        List<OrderListItemResponse> content = orders.stream()
+                .map(order -> OrderListItemResponse.from(
+                        order,
+                        orderItemMap.getOrDefault(order.getId(), List.of())
+                ))
+                .toList();
+
+        return OrderListResponse.of(
+                content,
+                orderPage.getNumber(),
+                orderPage.getSize(),
+                orderPage.getTotalElements(),
+                orderPage.getTotalPages()
+        );
     }
 
     private void usePoint(Member member, int totalAmount, int pointAmount) {

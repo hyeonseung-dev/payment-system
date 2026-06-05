@@ -48,7 +48,7 @@ public class OrderService {
 
     @Transactional
     public CreateOrderResponse createOrder(Long memberId, CreateOrderRequest request) {
-        Member member = findMember(memberId);
+        Member member = findMemberWithLock(memberId);
 
         // 주문 생성 중 같은 장바구니 상품을 동시에 주문하지 못하도록 비관적 락을 건다.
         List<CartItem> cartItems = cartItemRepository.findAllByIdsAndMemberIdWithLock(request.cartItemIds(), memberId);
@@ -62,6 +62,7 @@ public class OrderService {
         // 주문 총 금액을 계산
         int totalAmount = calculateTotalAmount(cartItems);
 
+        // TODO 포인트 도메인 구현 후 PointService를 통해 포인트 차감과 PointHistory저장을 함께 처리하도록 변경 예정
         // 포인트 사용 가능 여부를 검증하고 주문 생성 시점에 선차감한다.
         int pointAmount = request.getUsePointAmount();
         usePoint(member, totalAmount, pointAmount);
@@ -81,6 +82,9 @@ public class OrderService {
         // PortOne 결제에 사용할 결제대기 Payment를 생성
         Payment payment = createReadyPayment(order, totalAmount, pgAmount);
 
+        // 주문에 사용한 장바구니 상품을 소비 처리한다.
+        deleteOrderedCartItems(cartItems);
+
         return CreateOrderResponse.of(order, payment, pointAmount);
     }
 
@@ -90,22 +94,14 @@ public class OrderService {
             throw new BusinessException(ErrorCode.INVALID_POINT_AMOUNT);
         }
 
+        // TODO 포인트 도메인 구현 후 member,usePoint 직접 호출 대신 PointService.usePoint(..)로 교체 예정
+        // TODO 포인트 사용 이력을 같은 트랜잭션에서 저장해야 한다.
+        // TODO OrderService가 PointService에 직접 의존하지 않도록 추후 OrderFacade에서 주문/포인트 흐름을 조합할 예정
+
         // 포인트를 사용하는 경우에만 회원 포인트를 선차감한다.
         if (pointAmount > 0) {
             member.usePoint(pointAmount);
         }
-    }
-
-    private Member findMember(Long memberId) {
-
-        if (memberId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-
-        // JWT의 memberId가 실제 회원인지 확인
-        return memberRepository.findById(memberId).orElseThrow(
-                () -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND)
-        );
     }
 
     private void decreaseStock(List<CartItem> cartItems) {
@@ -149,7 +145,7 @@ public class OrderService {
     private Payment createReadyPayment(Order order, int totalAmount, int pgAmount) {
 
         // PortOne 결제창에서 사용할 결제 식별자를 생성
-        String portonePaymentId = createPortonePaymenttId();
+        String portonePaymentId = createPortonePaymentId();
 
         // todo 포인트 적립 예정 로직 구현 후 수정 예정
         // 아직 결제 성공 전이므로 적립 예정 포인트는 0으로 둔다.
@@ -166,11 +162,26 @@ public class OrderService {
         return paymentRepository.save(payment);
     }
 
-    private String createPortonePaymenttId() {
+    private String createPortonePaymentId() {
         // UUID를 이용해 중복 가능성이 낮은 결제 식별자를 만든다.
         return "pay_" + UUID.randomUUID()
                 .toString()
                 .replace("-", "")
                 .substring(0, 8);
+    }
+
+    private Member findMemberWithLock(Long memberId) {
+        if (memberId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        return memberRepository.findByIdWithLock(memberId).orElseThrow(
+                () -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND)
+        );
+    }
+
+    private void deleteOrderedCartItems(List<CartItem> cartItems) {
+        // 주문에 사용된 장바구니 상품은 다시 주문되지 않도록 삭제한다.
+        cartItemRepository.deleteAll(cartItems);
     }
 }

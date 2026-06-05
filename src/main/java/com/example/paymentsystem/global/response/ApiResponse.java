@@ -32,6 +32,11 @@ public class ApiResponse<T> {
         return new ApiResponse<>(SUCCESS_CODE, null, null);
     }
 
+    // data 없이 메세지를 넣고 성공
+    public static ApiResponse<Void> ok(String message) {
+        return new ApiResponse<>(SUCCESS_CODE, message, null);
+    }
+
     // 실패 응답 ────────────────────────────────────────────
 
     // ErrorCode 기반 실패

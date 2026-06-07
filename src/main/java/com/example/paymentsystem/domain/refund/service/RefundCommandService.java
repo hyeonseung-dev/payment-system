@@ -90,6 +90,7 @@ public class RefundCommandService {
         );
 
         // 환불 요청 상품별 포인트/PG 환불 금액을 배분한다. 마지막 상품에는 나눗셈 잔액을 몰아 합계를 맞춘다.
+        // 실제 PortOne에 요청하는 최종 PG 환불액을 기준으로 먼저 배분해야 RefundItem의 PG 합계가 Refund의 PG 금액과 일치한다.
         Long remainingPointRefundAmount = refundAmount.pointRefundAmount();
         Long remainingPgRefundAmount = refundAmount.pgRefundAmount();
 
@@ -99,16 +100,16 @@ public class RefundCommandService {
             boolean isLastItem = index == items.size() - 1;
 
             Long itemTotalAmount = calculateItemRefundAmount(orderItem, itemRequest.quantity());
-            Long itemPointRefundAmount = isLastItem
-                    ? remainingPointRefundAmount
-                    : calculateProportionalAmount(
-                            itemTotalAmount,
-                            refundAmount.pointRefundAmount(),
-                            refundAmount.totalRefundAmount()
-                    );
             Long itemPgRefundAmount = isLastItem
                     ? remainingPgRefundAmount
-                    : itemTotalAmount - itemPointRefundAmount;
+                    : calculateProportionalAmount(
+                            itemTotalAmount,
+                            refundAmount.pgRefundAmount(),
+                            refundAmount.totalRefundAmount()
+                    );
+            Long itemPointRefundAmount = isLastItem
+                    ? remainingPointRefundAmount
+                    : itemTotalAmount - itemPgRefundAmount;
 
             refundService.createRefundItem(
                     refund,

@@ -9,13 +9,13 @@ import com.example.paymentsystem.domain.payment.entity.PaymentStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record OrderDetailResponse (
+public record OrderDetailResponse(
         Long orderId,
         String orderNumber,
         OrderStatus status,
         int totalAmount,
         int pointAmount,
-        int pgAmount,
+        Long pgAmount,
         LocalDateTime createAt,
         PaymentStatus paymentStatus,
         Long earnedPointAmount,
@@ -26,7 +26,7 @@ public record OrderDetailResponse (
         int pointAmount = order.getUsePointAmountSnapshot();
 
         // 전체 주문 금액에서 포인트 사용 금액을 뺀 실제 PG 결제 금액
-        int pgAmount = order.getTotalAmount() - pointAmount;
+        Long pgAmount = payment.getPgAmount();
 
         // 주문 상품 엔티티를 상세 응답 DTO로 변환
         List<OrderDetailItemResponse> items = orderItems.stream()

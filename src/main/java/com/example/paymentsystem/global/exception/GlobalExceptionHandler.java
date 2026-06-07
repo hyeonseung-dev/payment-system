@@ -92,14 +92,6 @@ public class GlobalExceptionHandler {
     ) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiResponse.error(
-                        ErrorCode.CART_ITEM_CONFLICT));
-    }
-
-    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-    public ResponseEntity<ApiResponse<Void>> handleOptimisticLockException(
-            ObjectOptimisticLockingFailureException e
-    ) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(ErrorCode.ORDER_CONFLICT));
+                        ErrorCode.CONCURRENT_MODIFICATION));
     }
 }

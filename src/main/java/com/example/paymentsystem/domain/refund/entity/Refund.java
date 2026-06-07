@@ -52,6 +52,9 @@ public class Refund extends BaseEntity {
     @Column(nullable = false)
     private Long earnedPointDeductionAmount;
 
+    @Column(nullable = false, length = 100)
+    private String idempotencyKey;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private RefundStatus status;
@@ -64,6 +67,7 @@ public class Refund extends BaseEntity {
             Long pgRefundAmount,
             Long earnedPointCancelAmount,
             Long earnedPointDeductionAmount,
+            String idempotencyKey,
             RefundStatus status
     ) {
         this.payment = payment;
@@ -73,6 +77,7 @@ public class Refund extends BaseEntity {
         this.pgRefundAmount = pgRefundAmount;
         this.earnedPointCancelAmount = earnedPointCancelAmount;
         this.earnedPointDeductionAmount = earnedPointDeductionAmount;
+        this.idempotencyKey = idempotencyKey;
         this.status = status;
     }
 
@@ -86,6 +91,7 @@ public class Refund extends BaseEntity {
      * @param pgRefundAmount PG 환불 금액
      * @param earnedPointCancelAmount 적립 포인트 회수 금액
      * @param earnedPointDeductionAmount 적립 포인트 부족으로 PG 환불액에서 차감한 금액
+     * @param idempotencyKey PortOne 멱등성 키
      * @return 요청 상태의 환불 엔티티
      */
     public static Refund createRequested(
@@ -95,7 +101,8 @@ public class Refund extends BaseEntity {
             Long pointRefundAmount,
             Long pgRefundAmount,
             Long earnedPointCancelAmount,
-            Long earnedPointDeductionAmount
+            Long earnedPointDeductionAmount,
+            String idempotencyKey
     ) {
         return new Refund(
                 payment,
@@ -105,6 +112,7 @@ public class Refund extends BaseEntity {
                 pgRefundAmount,
                 earnedPointCancelAmount,
                 earnedPointDeductionAmount,
+                idempotencyKey,
                 RefundStatus.REQUESTED
         );
     }
@@ -119,6 +127,7 @@ public class Refund extends BaseEntity {
      * @param pgRefundAmount PG 환불 금액
      * @param earnedPointCancelAmount 적립 포인트 회수 금액
      * @param earnedPointDeductionAmount 적립 포인트 부족으로 PG 환불액에서 차감한 금액
+     * @param idempotencyKey PortOne 멱등성 키
      * @return 실패 상태의 환불 엔티티
      */
     public static Refund createFailed(
@@ -128,7 +137,8 @@ public class Refund extends BaseEntity {
             Long pointRefundAmount,
             Long pgRefundAmount,
             Long earnedPointCancelAmount,
-            Long earnedPointDeductionAmount
+            Long earnedPointDeductionAmount,
+            String idempotencyKey
     ) {
         return new Refund(
                 payment,
@@ -138,6 +148,7 @@ public class Refund extends BaseEntity {
                 pgRefundAmount,
                 earnedPointCancelAmount,
                 earnedPointDeductionAmount,
+                idempotencyKey,
                 RefundStatus.FAILED
         );
     }

@@ -31,6 +31,7 @@ public class PaymentFacade {
     private static final String PORTONE_CANCELED_STATUS = "CANCELED";
     private static final String PAYMENT_AMOUNT_MISMATCH_CANCEL_REASON = "결제 금액 불일치로 인한 자동 취소";
     private static final String ALREADY_CANCELLED_MESSAGE = "이미 취소된 결제입니다.";
+    private static final String ALREADY_CANCELLED_OR_REFUNDED_MESSAGE = "이미 취소 또는 환불된 결제입니다.";
 
     private final PaymentService paymentService;
     private final PaymentCommandService paymentCommandService;
@@ -234,6 +235,12 @@ public class PaymentFacade {
         if (payment.isCancelled()) {
             log.info("이미 취소된 웹훅 결제취소 요청: orderId={}, paymentId={}", orderId, payment.getId());
             return PaymentCancelResponse.of(payment, ALREADY_CANCELLED_MESSAGE);
+        }
+
+        // 환불 API에서 이미 전액 환불 처리된 뒤 PortOne 취소 웹훅이 늦게 도착한 경우 멱등하게 완료로 본다.
+        if (payment.isRefunded()) {
+            log.info("이미 전액 환불된 웹훅 결제취소 요청 무시: orderId={}, paymentId={}", orderId, payment.getId());
+            return PaymentCancelResponse.of(payment, ALREADY_CANCELLED_OR_REFUNDED_MESSAGE);
         }
 
         // PortOne 결제 정보 재조회

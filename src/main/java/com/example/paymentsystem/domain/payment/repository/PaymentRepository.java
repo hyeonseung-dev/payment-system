@@ -1,7 +1,9 @@
 package com.example.paymentsystem.domain.payment.repository;
 
 import com.example.paymentsystem.domain.payment.entity.Payment;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -41,6 +43,22 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             where p.id = :paymentId
             """)
     Optional<Payment> findByIdWithOrderAndMember(@Param("paymentId") Long paymentId);
+
+    /**
+     * 결제 ID로 주문과 회원 정보까지 함께 조회하고 비관적 락을 건다.
+     *
+     * @param paymentId 결제 ID
+     * @return 주문과 회원 정보가 포함된 결제 정보
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select p
+            from Payment p
+            join fetch p.order o
+            join fetch o.member
+            where p.id = :paymentId
+            """)
+    Optional<Payment> findByIdWithOrderAndMemberForUpdate(@Param("paymentId") Long paymentId);
 
     /**
      * PortOne 결제 식별자로 결제 정보를 조회한다.

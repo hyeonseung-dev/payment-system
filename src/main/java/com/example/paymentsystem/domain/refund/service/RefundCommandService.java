@@ -9,6 +9,8 @@ import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.domain.refund.dto.RefundItemRequest;
 import com.example.paymentsystem.domain.refund.dto.RefundResponse;
 import com.example.paymentsystem.domain.refund.entity.Refund;
+import com.example.paymentsystem.domain.refund.entity.RefundItem;
+import com.example.paymentsystem.domain.refund.entity.RefundStatus;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -18,13 +20,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
- * 환불 완료 후 내부 DB 상태 변경을 하나의 트랜잭션으로 처리하는 서비스이다.
+ * 환불 요청 선점과 환불 완료 후 내부 DB 상태 변경을 처리하는 서비스이다.
  *
- * <p>PortOne 같은 외부 API 호출은 Facade에서 수행하고,
- * 이 서비스는 환불 저장, 환불 상품 저장, 재고 복구, 포인트 복구/회수, 결제 상태 변경만 담당한다.</p>
+ * <p>PortOne 환불 요청 전에 REQUESTED 환불과 환불 상품을 먼저 저장해 같은 결제의 중복 환불 요청이
+ * PortOne까지 나가지 못하도록 막는다. PortOne 같은 외부 API 호출은 Facade에서 수행한다.</p>
  */
 @Slf4j
 @Service
@@ -37,24 +40,31 @@ public class RefundCommandService {
     private final ProductRepository productRepository;
 
     /**
-     * 환불에 따른 내부 상태 변경을 처리한다.
+     * 환불 요청을 REQUESTED 상태로 저장하고 환불 수량을 선점한다.
      *
+     * @param memberId 인증 회원 ID
      * @param paymentId 결제 ID
      * @param reason 환불 사유
      * @param items 환불 요청 상품 목록
-     * @return 환불 응답
+     * @return PortOne 환불 요청에 필요한 선점 환불 정보
      */
     @Transactional
-    public RefundResponse completeRefund(Long paymentId, String reason, List<RefundItemRequest> items) {
-        Payment payment = paymentService.findByIdWithOrderAndMember(paymentId);
-        log.info("환불 내부 처리 시작: orderId={}, paymentId={}, paymentStatus={}",
-                payment.getOrder().getId(), paymentId, payment.getStatus());
+    public RequestedRefundResult requestRefund(
+            Long memberId,
+            Long paymentId,
+            String reason,
+            List<RefundItemRequest> items
+    ) {
+        Payment payment = paymentService.findByIdWithOrderAndMemberForUpdate(paymentId);
+        log.info("환불 요청 선점 시작: memberId={}, orderId={}, paymentId={}, paymentStatus={}",
+                memberId, payment.getOrder().getId(), paymentId, payment.getStatus());
 
+        validateOwnership(payment, memberId);
         refundService.validateRefundablePayment(payment);
         validateDuplicateOrderItems(items);
 
         RefundAmount refundAmount = calculateRefundAmount(payment, items);
-        Refund refund = refundService.createCompletedRefund(
+        Refund refund = refundService.createRequestedRefund(
                 payment,
                 reason,
                 refundAmount.totalRefundAmount(),
@@ -91,51 +101,85 @@ public class RefundCommandService {
                     itemPointRefundAmount,
                     itemPgRefundAmount
             );
-            restoreStock(orderItem, itemRequest.quantity());
 
             remainingPointRefundAmount -= itemPointRefundAmount;
             remainingPgRefundAmount -= itemPgRefundAmount;
         }
 
-        restoreUsedPoint(payment, refundAmount.pointRefundAmount());
+        log.info("환불 요청 선점 완료: orderId={}, paymentId={}, refundId={}, pgRefundAmount={}",
+                payment.getOrder().getId(), paymentId, refund.getId(), refundAmount.pgRefundAmount());
+
+        return new RequestedRefundResult(
+                refund.getId(),
+                payment.getPortonePaymentId(),
+                refundAmount.pgRefundAmount()
+        );
+    }
+
+    /**
+     * REQUESTED 환불을 완료 처리하고 재고, 포인트, 결제 상태를 반영한다.
+     *
+     * @param refundId 환불 ID
+     * @return 환불 응답
+     */
+    @Transactional
+    public RefundResponse completeRequestedRefund(Long refundId) {
+        Refund refund = refundService.findById(refundId);
+        if (refund.getStatus() != RefundStatus.REQUESTED) {
+            throw new BusinessException(ErrorCode.INVALID_REFUND_STATUS);
+        }
+
+        Payment payment = refund.getPayment();
+        log.info("환불 완료 내부 처리 시작: orderId={}, paymentId={}, refundId={}",
+                payment.getOrder().getId(), payment.getId(), refund.getId());
+
+        refund.complete();
+
+        List<RefundItem> refundItems = refundService.findItemsByRefundId(refundId);
+        for (RefundItem refundItem : refundItems) {
+            restoreStock(refundItem.getOrderItem(), refundItem.getQuantity());
+        }
+
+        restoreUsedPoint(payment, refund.getPointRefundAmount());
         cancelEarnedPoint(
                 payment,
-                refundAmount.earnedPointCancelAmount(),
-                refundAmount.earnedPointDeductionAmount()
+                refund.getEarnedPointCancelAmount(),
+                refund.getEarnedPointDeductionAmount()
         );
         updatePaymentAndOrderStatus(payment);
 
-        log.info("환불 내부 처리 완료: orderId={}, paymentId={}, refundId={}, totalRefundAmount={}, paymentStatus={}",
-                payment.getOrder().getId(), paymentId, refund.getId(),
-                refundAmount.totalRefundAmount(), payment.getStatus());
+        log.info("환불 완료 내부 처리 완료: orderId={}, paymentId={}, refundId={}, totalRefundAmount={}, paymentStatus={}",
+                payment.getOrder().getId(), payment.getId(), refund.getId(),
+                refund.getTotalRefundAmount(), payment.getStatus());
 
         return RefundResponse.of(
                 refund.getId(),
-                paymentId,
+                payment.getId(),
                 refund.getStatus(),
-                refundAmount.totalRefundAmount(),
-                refundAmount.pointRefundAmount(),
-                refundAmount.pgRefundAmount(),
-                refundAmount.earnedPointCancelAmount(),
-                refundAmount.earnedPointDeductionAmount(),
+                refund.getTotalRefundAmount(),
+                refund.getPointRefundAmount(),
+                refund.getPgRefundAmount(),
+                refund.getEarnedPointCancelAmount(),
+                refund.getEarnedPointDeductionAmount(),
                 payment.getStatus()
         );
     }
 
     /**
-     * 환불 요청 기준 PG 환불 금액을 계산한다.
+     * REQUESTED 환불을 실패 상태로 변경한다.
      *
-     * @param paymentId 결제 ID
-     * @param items 환불 요청 상품 목록
-     * @return PG 환불 금액
+     * @param refundId 환불 ID
      */
-    @Transactional(readOnly = true)
-    public Long calculatePgRefundAmount(Long paymentId, List<RefundItemRequest> items) {
-        Payment payment = paymentService.findByIdWithOrderAndMember(paymentId);
-        refundService.validateRefundablePayment(payment);
-        // 중복 orderItemID 일시 예외 처리
-        validateDuplicateOrderItems(items);
-        return calculateRefundAmount(payment, items).pgRefundAmount();
+    @Transactional
+    public void failRequestedRefund(Long refundId) {
+        Refund refund = refundService.findById(refundId);
+        if (refund.getStatus() == RefundStatus.COMPLETED) {
+            return;
+        }
+
+        refund.fail();
+        log.warn("환불 요청 실패 처리 완료: orderId={}, paymentId={}, refundId={}",
+                refund.getPayment().getOrder().getId(), refund.getPayment().getId(), refundId);
     }
 
     private RefundAmount calculateRefundAmount(Payment payment, List<RefundItemRequest> items) {
@@ -184,6 +228,15 @@ public class RefundCommandService {
         }
 
         return orderItem;
+    }
+
+    private void validateOwnership(Payment payment, Long memberId) {
+        Long ownerId = payment.getOrder().getMember().getId();
+        if (!Objects.equals(ownerId, memberId)) {
+            log.warn("환불 결제 소유권 검증 실패: memberId={}, ownerId={}, orderId={}, paymentId={}",
+                    memberId, ownerId, payment.getOrder().getId(), payment.getId());
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
     }
 
     private void validateDuplicateOrderItems(List<RefundItemRequest> items) {
@@ -304,6 +357,20 @@ public class RefundCommandService {
         }
 
         payment.markPartialRefunded();
+    }
+
+    /**
+     * PortOne 환불 요청에 필요한 REQUESTED 환불 정보이다.
+     *
+     * @param refundId 환불 ID
+     * @param portonePaymentId PortOne 결제 식별자
+     * @param pgRefundAmount PG 환불 요청 금액
+     */
+    public record RequestedRefundResult(
+            Long refundId,
+            String portonePaymentId,
+            Long pgRefundAmount
+    ) {
     }
 
     private record RefundAmount(

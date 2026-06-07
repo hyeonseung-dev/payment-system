@@ -30,20 +30,20 @@ public interface RefundItemRepository extends JpaRepository<RefundItem, Long> {
     List<RefundItem> findByOrderItemId(Long orderItemId);
 
     /**
-     * 주문 상품 ID와 환불 상태로 환불 완료 수량 합계를 조회한다.
+     * 주문 상품 ID와 환불 상태 목록으로 선점된 환불 수량 합계를 조회한다.
      *
      * @param orderItemId 주문 상품 ID
-     * @param status 환불 상태
+     * @param statuses 환불 상태 목록
      * @return 환불 수량 합계
      */
     @Query("""
             select coalesce(sum(ri.quantity), 0)
             from RefundItem ri
             where ri.orderItem.id = :orderItemId
-              and ri.refund.status = :status
+              and ri.refund.status in :statuses
             """)
-    Long sumQuantityByOrderItemIdAndRefundStatus(
+    Long sumQuantityByOrderItemIdAndRefundStatuses(
             @Param("orderItemId") Long orderItemId,
-            @Param("status") RefundStatus status
+            @Param("statuses") List<RefundStatus> statuses
     );
 }

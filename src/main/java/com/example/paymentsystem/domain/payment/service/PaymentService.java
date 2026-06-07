@@ -76,6 +76,18 @@ public class PaymentService {
     }
 
     /**
+     * 결제 ID로 주문과 회원 정보가 포함된 Payment를 비관적 락과 함께 조회한다.
+     *
+     * @param paymentId 결제 ID
+     * @return 주문과 회원 정보가 포함된 결제 정보
+     */
+    @Transactional
+    public Payment findByIdWithOrderAndMemberForUpdate(Long paymentId) {
+        return paymentRepository.findByIdWithOrderAndMemberForUpdate(paymentId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+    }
+
+    /**
      * PortOne 결제 식별자로 주문과 회원 정보가 포함된 Payment를 조회한다.
      *
      * @param portonePaymentId PortOne 결제 식별자

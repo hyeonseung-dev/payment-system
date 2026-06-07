@@ -27,7 +27,7 @@ public class RefundService {
     private final RefundItemRepository refundItemRepository;
 
     /**
-     * 완료 상태의 환불 정보를 저장한다.
+     * 요청 상태의 환불 정보를 저장한다.
      *
      * @param payment 환불 대상 결제
      * @param reason 환불 사유
@@ -39,7 +39,7 @@ public class RefundService {
      * @return 저장된 환불 정보
      */
     @Transactional
-    public Refund createCompletedRefund(
+    public Refund createRequestedRefund(
             Payment payment,
             String reason,
             Long totalRefundAmount,
@@ -48,7 +48,7 @@ public class RefundService {
             Long earnedPointCancelAmount,
             Long earnedPointDeductionAmount
     ) {
-        Refund refund = Refund.createCompleted(
+        Refund refund = Refund.createRequested(
                 payment,
                 reason,
                 totalRefundAmount,
@@ -147,6 +147,18 @@ public class RefundService {
     }
 
     /**
+     * 환불 ID로 환불 정보를 조회한다.
+     *
+     * @param refundId 환불 ID
+     * @return 환불 정보
+     */
+    @Transactional(readOnly = true)
+    public Refund findById(Long refundId) {
+        return refundRepository.findById(refundId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REFUND_NOT_FOUND));
+    }
+
+    /**
      * 결제가 환불 가능한 상태인지 검증한다.
      *
      * @param payment 환불 대상 결제
@@ -169,8 +181,8 @@ public class RefundService {
             throw new BusinessException(ErrorCode.INVALID_REFUND_QUANTITY);
         }
 
-        int refundedQuantity = calculateRefundedQuantity(orderItem.getId());
-        int refundableQuantity = orderItem.getQuantity() - refundedQuantity;
+        int reservedRefundQuantity = calculateReservedRefundQuantity(orderItem.getId());
+        int refundableQuantity = orderItem.getQuantity() - reservedRefundQuantity;
 
         if (refundQuantity > refundableQuantity) {
             throw new BusinessException(ErrorCode.REFUND_QUANTITY_EXCEEDED);
@@ -178,16 +190,16 @@ public class RefundService {
     }
 
     /**
-     * 주문 상품 ID 기준으로 완료된 환불 수량 합계를 계산한다.
+     * 주문 상품 ID 기준으로 선점된 환불 수량 합계를 계산한다.
      *
      * @param orderItemId 주문 상품 ID
-     * @return 완료된 환불 수량 합계
+     * @return 선점된 환불 수량 합계
      */
     @Transactional(readOnly = true)
-    public int calculateRefundedQuantity(Long orderItemId) {
-        Long refundedQuantity = refundItemRepository.sumQuantityByOrderItemIdAndRefundStatus(
+    public int calculateReservedRefundQuantity(Long orderItemId) {
+        Long refundedQuantity = refundItemRepository.sumQuantityByOrderItemIdAndRefundStatuses(
                 orderItemId,
-                RefundStatus.COMPLETED
+                List.of(RefundStatus.REQUESTED, RefundStatus.COMPLETED)
         );
         return refundedQuantity.intValue();
     }

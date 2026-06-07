@@ -42,23 +42,13 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<OrderListResponse>> findOrders(
-            @AuthenticationPrincipal Long memberId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        OrderListResponse response = orderService.findOrder(memberId, page, size);
-
-        return ResponseEntity.ok(ApiResponse.ok(response));
-    }
-
-    @GetMapping("/{orderId}")
-    public ResponseEntity<ApiResponse<OrderDetailResponse>> findOrderDetail(
+    @PatchMapping("/{orderId}/cancel")
+    public ResponseEntity<ApiResponse<OrderCancelResponse>> cancelPendingOrder(
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long orderId
     ) {
-        OrderDetailResponse response = orderService.findOrderDetail(memberId, orderId);
+        OrderCancelResponse response = orderService.cancelPendingOrder(memberId, orderId);
+
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }

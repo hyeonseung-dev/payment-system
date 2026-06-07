@@ -170,6 +170,7 @@ public class RefundService {
      * @param payment 환불 대상 결제
      */
     public void validateRefundablePayment(Payment payment) {
+        // 결제 완료 또는 부분 환불 상태인 결제만 추가 환불을 허용한다.
         if (payment.getStatus() != PaymentStatus.PAID
                 && payment.getStatus() != PaymentStatus.PARTIAL_REFUNDED) {
             throw new BusinessException(ErrorCode.INVALID_REFUND_STATUS);
@@ -179,17 +180,23 @@ public class RefundService {
     /**
      * 주문 상품의 환불 요청 수량이 환불 가능 수량을 초과하지 않는지 검증한다.
      *
+     * <p>REQUESTED 상태는 아직 PortOne 환불 완료 전이지만 중복 환불 요청을 막기 위해
+     * 이미 선점된 수량으로 본다. FAILED 상태는 실패한 요청이므로 합산하지 않는다.</p>
+     *
      * @param orderItem 환불 대상 주문 상품
      * @param refundQuantity 환불 요청 수량
      */
     public void validateRefundQuantity(OrderItem orderItem, Integer refundQuantity) {
+        // 환불 수량은 1 이상이어야 한다.
         if (refundQuantity == null || refundQuantity <= 0) {
             throw new BusinessException(ErrorCode.INVALID_REFUND_QUANTITY);
         }
 
+        // REQUESTED + COMPLETED 수량을 선점된 수량으로 보고 남은 환불 가능 수량을 계산한다.
         int reservedRefundQuantity = calculateReservedRefundQuantity(orderItem.getId());
         int refundableQuantity = orderItem.getQuantity() - reservedRefundQuantity;
 
+        // 요청 수량이 남은 환불 가능 수량보다 많으면 초과 환불이므로 차단한다.
         if (refundQuantity > refundableQuantity) {
             throw new BusinessException(ErrorCode.REFUND_QUANTITY_EXCEEDED);
         }
@@ -203,6 +210,7 @@ public class RefundService {
      */
     @Transactional(readOnly = true)
     public int calculateReservedRefundQuantity(Long orderItemId) {
+        // FAILED 환불은 실제 환불이 완료되지 않았으므로 수량 선점 합계에서 제외한다.
         Long refundedQuantity = refundItemRepository.sumQuantityByOrderItemIdAndRefundStatuses(
                 orderItemId,
                 List.of(RefundStatus.REQUESTED, RefundStatus.COMPLETED)

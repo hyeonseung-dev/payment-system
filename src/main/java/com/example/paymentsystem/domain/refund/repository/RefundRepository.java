@@ -38,4 +38,22 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
             @Param("paymentId") Long paymentId,
             @Param("status") RefundStatus status
     );
+
+    /**
+     * 결제 ID와 환불 상태로 PG 환불 금액 합계를 조회한다.
+     *
+     * @param paymentId 결제 ID
+     * @param status 환불 상태
+     * @return PG 환불 금액 합계
+     */
+    @Query("""
+            select coalesce(sum(r.pgRefundAmount), 0)
+            from Refund r
+            where r.payment.id = :paymentId
+              and r.status = :status
+            """)
+    Long sumPgRefundAmountByPaymentIdAndStatus(
+            @Param("paymentId") Long paymentId,
+            @Param("status") RefundStatus status
+    );
 }

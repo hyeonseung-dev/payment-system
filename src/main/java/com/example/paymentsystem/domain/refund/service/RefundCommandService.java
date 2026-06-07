@@ -243,7 +243,12 @@ public class RefundCommandService {
                 payment.getTotalAmount()
         );
 
-        // 사용 포인트 복구액은 전체 환불액에서 PG 환불액을 뺀 값으로 맞춰 합계 오차를 없앤다.
+        // 반복 부분 환불 시 매번 원 단위 올림이 발생해도 누적 PG 환불액이 실제 PG 결제액을 넘지 않도록 보정한다.
+        Long completedPgRefundAmount = refundService.calculateCompletedPgRefundAmount(payment.getId());
+        Long remainingPgRefundAmount = Math.max(payment.getPgAmount() - completedPgRefundAmount, 0L);
+        basePgRefundAmount = Math.min(basePgRefundAmount, remainingPgRefundAmount);
+
+        // 사용 포인트 복구액은 보정된 PG 환불액을 뺀 값으로 맞춰 누적 PG 한도 초과와 합계 오차를 막는다.
         Long pointRefundAmount = totalRefundAmount - basePgRefundAmount;
 
         // 누적 환불 금액 기준으로 이번 환불에서 회수해야 할 적립 포인트 차액을 계산한다.

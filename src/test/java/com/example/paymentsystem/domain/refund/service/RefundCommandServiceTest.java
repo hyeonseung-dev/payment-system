@@ -118,6 +118,48 @@ class RefundCommandServiceTest {
     }
 
     @Test
+    void 반복_부분환불_올림_계산으로_누적_PG환불액이_실제_PG결제액을_초과하지_않도록_보정한다() {
+        // given
+        // 총 10원 중 PG 5원 결제에서 5원씩 두 번 환불하면 비율 계산은 매번 2.5원이다.
+        // 원 단위 올림을 그대로 두 번 적용하면 3원 + 3원 = 6원이 되어 실제 PG 결제액 5원을 초과한다.
+        Payment payment = createPaidPayment(1L, 10L, 10L, 5L, 0L, 0);
+        Refund refund = Refund.createRequested(payment, "두 번째 부분 환불", 5L, 3L, 2L, 0L, 0L, "idem");
+        setId(refund, 100L);
+
+        OrderItem orderItem = createOrderItem(payment.getOrder(), 11L, 101L, 5, 1);
+        List<RefundItemRequest> items = List.of(new RefundItemRequest(11L, 1));
+
+        when(paymentService.findByIdWithOrderAndMemberForUpdate(1L)).thenReturn(payment);
+        when(orderItemRepository.findById(11L)).thenReturn(Optional.of(orderItem));
+
+        // 이미 첫 번째 부분환불에서 PG 3원이 완료되었다고 가정한다.
+        when(refundService.calculateCompletedPgRefundAmount(payment.getId())).thenReturn(3L);
+        when(refundService.createRequestedRefund(
+                eq(payment),
+                eq("두 번째 부분 환불"),
+                eq(5L),
+                eq(3L),
+                eq(2L),
+                eq(0L),
+                eq(0L),
+                anyString()
+        )).thenReturn(refund);
+
+        // when
+        RefundCommandService.RequestedRefundResult result = refundCommandService.requestRefund(
+                1L,
+                1L,
+                "두 번째 부분 환불",
+                items
+        );
+
+        // then
+        // 두 번째 환불의 원래 올림 결과는 3원이지만, 남은 PG 환불 가능액은 2원이므로 2원만 PortOne에 요청해야 한다.
+        assertThat(result.pgRefundAmount()).isEqualTo(2L);
+        verify(refundService).createRefundItem(refund, orderItem, 1, 3L, 2L);
+    }
+
+    @Test
     void 같은_요청에_동일_orderItemId가_중복되면_수량검증_우회를_막기_위해_실패한다() {
         // given
         Payment payment = createPaidPayment(1L, 10L, 10_000L, 10_000L, 0L, 0);

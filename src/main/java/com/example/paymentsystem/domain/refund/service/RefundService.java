@@ -231,4 +231,18 @@ public class RefundService {
                 RefundStatus.COMPLETED
         );
     }
+
+    /**
+     * 결제 ID 기준 완료 환불의 PG 환불 금액 합계를 계산한다.
+     *
+     * @param paymentId 결제 ID
+     * @return PG 환불 금액 합계
+     */
+    @Transactional(readOnly = true)
+    public Long calculateCompletedPgRefundAmount(Long paymentId) {
+        return refundRepository.sumPgRefundAmountByPaymentIdAndStatus(
+                paymentId,
+                RefundStatus.COMPLETED
+        );
+    }
 }

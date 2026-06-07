@@ -343,7 +343,6 @@ class OrderServiceTest {
         when(order.getOrderNumber()).thenReturn("ORD-20260605-000001");
         when(order.getStatus()).thenReturn(PAYMENT_PENDING);
         when(order.getTotalAmount()).thenReturn(30_000);
-        when(order.getUsePointAmountSnapshot()).thenReturn(5_000);
         when(order.getCreatedAt()).thenReturn(LocalDateTime.of(2026, 6, 5, 16, 30));
 
         // 주문 상품을 주문 ID 기준으로 묶기 위해 OrderItem에서 Order를 꺼낼 수 있어야 한다.
@@ -540,6 +539,7 @@ class OrderServiceTest {
         // 주문 상세 응답에 필요한 결제 정보를 준비한다.
         when(payment.getStatus()).thenReturn(PaymentStatus.READY);
         when(payment.getEarnedPointAmount()).thenReturn(0L);
+        when(payment.getPgAmount()).thenReturn(25000L);
 
         // 주문 ID와 회원 ID가 모두 일치하는 주문만 조회된다.
         when(orderRepository.findByIdAndMember_Id(orderId, memberId))
@@ -560,7 +560,7 @@ class OrderServiceTest {
         assertThat(response.status()).isEqualTo(PAYMENT_PENDING);
         assertThat(response.totalAmount()).isEqualTo(30_000);
         assertThat(response.pointAmount()).isEqualTo(5_000);
-        assertThat(response.pgAmount()).isEqualTo(25_000);
+        assertThat(response.pgAmount()).isEqualTo(25_000L);
         assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.READY);
         assertThat(response.earnedPointAmount()).isEqualTo(0L);
         assertThat(response.items()).hasSize(1);

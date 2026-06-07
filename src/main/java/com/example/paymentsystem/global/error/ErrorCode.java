@@ -42,6 +42,7 @@ public enum ErrorCode {
     // ── Order ───────────────────────────────────────────────
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND,            "ORDER_001", "주문을 찾을 수 없습니다."),
     INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST,     "ORDER_002", "유효하지 않은 주문 상태 변경입니다."),
+    ORDER_CONFLICT(HttpStatus.CONFLICT,              "ORDER_003", "주문이 이미 처리되었습니다. 다시 확인해주세요."),
 
     // ── Point ───────────────────────────────────────────────
     POINT_NOT_FOUND(HttpStatus.NOT_FOUND,            "POINT_001", "포인트 정보를 찾을 수 없습니다."),

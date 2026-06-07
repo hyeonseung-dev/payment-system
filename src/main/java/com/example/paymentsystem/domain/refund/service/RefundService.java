@@ -36,6 +36,7 @@ public class RefundService {
      * @param pgRefundAmount PG 환불 금액
      * @param earnedPointCancelAmount 적립 포인트 회수 금액
      * @param earnedPointDeductionAmount 적립 포인트 부족으로 PG 환불액에서 차감한 금액
+     * @param idempotencyKey PortOne 멱등성 키
      * @return 저장된 환불 정보
      */
     @Transactional
@@ -46,7 +47,8 @@ public class RefundService {
             Long pointRefundAmount,
             Long pgRefundAmount,
             Long earnedPointCancelAmount,
-            Long earnedPointDeductionAmount
+            Long earnedPointDeductionAmount,
+            String idempotencyKey
     ) {
         Refund refund = Refund.createRequested(
                 payment,
@@ -55,7 +57,8 @@ public class RefundService {
                 pointRefundAmount,
                 pgRefundAmount,
                 earnedPointCancelAmount,
-                earnedPointDeductionAmount
+                earnedPointDeductionAmount,
+                idempotencyKey
         );
         return refundRepository.save(refund);
     }
@@ -70,6 +73,7 @@ public class RefundService {
      * @param pgRefundAmount PG 환불 금액
      * @param earnedPointCancelAmount 적립 포인트 회수 금액
      * @param earnedPointDeductionAmount 적립 포인트 부족으로 PG 환불액에서 차감한 금액
+     * @param idempotencyKey PortOne 멱등성 키
      * @return 저장된 환불 정보
      */
     @Transactional
@@ -80,7 +84,8 @@ public class RefundService {
             Long pointRefundAmount,
             Long pgRefundAmount,
             Long earnedPointCancelAmount,
-            Long earnedPointDeductionAmount
+            Long earnedPointDeductionAmount,
+            String idempotencyKey
     ) {
         Refund refund = Refund.createFailed(
                 payment,
@@ -89,7 +94,8 @@ public class RefundService {
                 pointRefundAmount,
                 pgRefundAmount,
                 earnedPointCancelAmount,
-                earnedPointDeductionAmount
+                earnedPointDeductionAmount,
+                idempotencyKey
         );
         return refundRepository.save(refund);
     }

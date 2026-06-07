@@ -13,6 +13,7 @@ import com.example.paymentsystem.domain.refund.entity.RefundItem;
 import com.example.paymentsystem.domain.refund.entity.RefundStatus;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
+import com.example.paymentsystem.infra.portone.client.PortOneIdempotencyKeyGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -64,6 +65,7 @@ public class RefundCommandService {
         validateDuplicateOrderItems(items);
 
         RefundAmount refundAmount = calculateRefundAmount(payment, items);
+        String idempotencyKey = PortOneIdempotencyKeyGenerator.generateIdempotencyKey();
         Refund refund = refundService.createRequestedRefund(
                 payment,
                 reason,
@@ -71,7 +73,8 @@ public class RefundCommandService {
                 refundAmount.pointRefundAmount(),
                 refundAmount.pgRefundAmount(),
                 refundAmount.earnedPointCancelAmount(),
-                refundAmount.earnedPointDeductionAmount()
+                refundAmount.earnedPointDeductionAmount(),
+                idempotencyKey
         );
 
         Long remainingPointRefundAmount = refundAmount.pointRefundAmount();
@@ -112,7 +115,8 @@ public class RefundCommandService {
         return new RequestedRefundResult(
                 refund.getId(),
                 payment.getPortonePaymentId(),
-                refundAmount.pgRefundAmount()
+                refundAmount.pgRefundAmount(),
+                idempotencyKey
         );
     }
 
@@ -365,11 +369,13 @@ public class RefundCommandService {
      * @param refundId 환불 ID
      * @param portonePaymentId PortOne 결제 식별자
      * @param pgRefundAmount PG 환불 요청 금액
+     * @param idempotencyKey PortOne 멱등성 키
      */
     public record RequestedRefundResult(
             Long refundId,
             String portonePaymentId,
-            Long pgRefundAmount
+            Long pgRefundAmount,
+            String idempotencyKey
     ) {
     }
 

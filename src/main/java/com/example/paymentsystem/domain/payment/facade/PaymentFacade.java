@@ -9,6 +9,7 @@ import com.example.paymentsystem.domain.payment.service.PaymentCommandService;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
 import com.example.paymentsystem.infra.portone.client.PortOneClient;
+import com.example.paymentsystem.infra.portone.client.PortOneIdempotencyKeyGenerator;
 import com.example.paymentsystem.infra.portone.dto.PortOneCancelResponse;
 import com.example.paymentsystem.infra.portone.dto.PortOnePaymentResponse;
 import lombok.RequiredArgsConstructor;
@@ -200,7 +201,8 @@ public class PaymentFacade {
             PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(
                     payment.getPortonePaymentId(),
                     cancelAmount,
-                    reason
+                    reason,
+                    PortOneIdempotencyKeyGenerator.generateIdempotencyKey()
             );
             log.info("PortOne 결제취소 완료: orderId={}, paymentId={}, cancelledAmount={}, cancelStatus={}",
                     payment.getOrder().getId(), payment.getId(), cancelResponse.cancelledAmount(), cancelResponse.status());
@@ -300,7 +302,8 @@ public class PaymentFacade {
         PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(
                 portonePaymentId,
                 portOnePayment.paidAmount(),
-                PAYMENT_AMOUNT_MISMATCH_CANCEL_REASON
+                PAYMENT_AMOUNT_MISMATCH_CANCEL_REASON,
+                PortOneIdempotencyKeyGenerator.generateIdempotencyKey()
         );
         log.warn("금액 불일치 결제 PortOne 보상취소 완료: portonePaymentId={}, cancelledAmount={}, cancelStatus={}",
                 cancelResponse.portonePaymentId(), cancelResponse.cancelledAmount(), cancelResponse.status());

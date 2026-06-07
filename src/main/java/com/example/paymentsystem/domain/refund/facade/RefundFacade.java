@@ -58,7 +58,8 @@ public class RefundFacade {
                 PortOneCancelResponse cancelResponse = portOneClient.cancelPayment(
                         requestedRefund.portonePaymentId(),
                         requestedRefund.pgRefundAmount(),
-                        reason
+                        reason,
+                        requestedRefund.idempotencyKey()
                 );
                 log.info("PortOne 환불 완료: paymentId={}, refundId={}, cancelledAmount={}, cancelStatus={}",
                         paymentId, requestedRefund.refundId(),

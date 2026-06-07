@@ -22,7 +22,13 @@ public interface PortOneClient {
      * @param portonePaymentId PortOne 결제 식별자
      * @param cancelAmount 취소 또는 환불 요청 금액
      * @param reason 취소 또는 환불 사유
+     * @param idempotencyKey PortOne 멱등성 키
      * @return PortOne 결제 취소 응답
      */
-    PortOneCancelResponse cancelPayment(String portonePaymentId, Long cancelAmount, String reason);
+    PortOneCancelResponse cancelPayment(
+            String portonePaymentId,
+            Long cancelAmount,
+            String reason,
+            String idempotencyKey
+    );
 }

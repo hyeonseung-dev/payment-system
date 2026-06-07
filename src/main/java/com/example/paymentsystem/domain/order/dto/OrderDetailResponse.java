@@ -25,7 +25,7 @@ public record OrderDetailResponse(
         // 주문 생성 시점에 저장한 포인트 사용 금액
         int pointAmount = order.getUsePointAmountSnapshot();
 
-        // 전체 주문 금액에서 포인트 사용 금액을 뺀 실제 PG 결제 금액
+        // Payment에 저장된 실제 PG 결제 금액을 사용한다
         Long pgAmount = payment.getPgAmount();
 
         // 주문 상품 엔티티를 상세 응답 DTO로 변환

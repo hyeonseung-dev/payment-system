@@ -109,7 +109,11 @@ public class RefundCommandService {
                     );
             Long itemPointRefundAmount = isLastItem
                     ? remainingPointRefundAmount
-                    : itemTotalAmount - itemPgRefundAmount;
+                    : calculateProportionalAmount(
+                            itemTotalAmount,
+                            refundAmount.pointRefundAmount(),
+                            refundAmount.totalRefundAmount()
+                    );
 
             refundService.createRefundItem(
                     refund,

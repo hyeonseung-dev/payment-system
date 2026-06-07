@@ -7,6 +7,7 @@ import com.example.paymentsystem.domain.member.repository.MemberRepository;
 import com.example.paymentsystem.domain.order.dto.*;
 import com.example.paymentsystem.domain.order.entity.Order;
 import com.example.paymentsystem.domain.order.entity.OrderItem;
+import com.example.paymentsystem.domain.order.enums.OrderStatus;
 import com.example.paymentsystem.domain.order.repository.OrderItemRepository;
 import com.example.paymentsystem.domain.order.repository.OrderRepository;
 import com.example.paymentsystem.domain.payment.entity.Payment;
@@ -16,16 +17,11 @@ import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -129,67 +125,9 @@ public class OrderService {
         return CreateOrderResponse.of(order, payment, pointAmount);
     }
 
-    @Transactional(readOnly = true)
-    public OrderListResponse findOrder(Long memberId, int page, int size) {
-        // JWT 인증 정보가 없으면 주문 목록을 조회할 수 없다.
-        if (memberId == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-
-        if (page < 0 || size < 1) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT);
-        }
-
-        Pageable pageable = PageRequest.of(page, size);
-
-        // 로그인한 회원의 주문만 최신순으로 조회한다.
-        Page<Order> orderPage = orderRepository.findByMember_IdOrderByCreatedAtDesc(memberId, pageable);
-
-        List<Order> orders = orderPage.getContent();
-
-        // 주문이 없으면 빈 목록을 반환한다.
-        if (orders.isEmpty()) {
-            return OrderListResponse.of(
-                    List.of(),
-                    orderPage.getNumber(),
-                    orderPage.getSize(),
-                    orderPage.getTotalElements(),
-                    orderPage.getTotalPages()
-            );
-        }
-
-        // 주문 ID 목록을 만든다.
-        List<Long> list = orders.stream()
-                .map(Order::getId)
-                .toList();
-
-        // 주문 상품을 한 번에 조회해서 N+1 문제를 피한다.
-        List<OrderItem> orderItems = orderItemRepository.findAllByOrderIds(list);
-
-        // 주문 ID 기준으로 주문 상품을 묶는다.
-        Map<Long, List<OrderItem>> orderItemMap = orderItems.stream()
-                .collect(Collectors.groupingBy(orderItem -> orderItem.getOrder().getId()));
-
-        // 주문 목록 응답 DTO로 변환한다.
-        List<OrderListItemResponse> content = orders.stream()
-                .map(order -> OrderListItemResponse.from(
-                        order,
-                        orderItemMap.getOrDefault(order.getId(), List.of())
-                ))
-                .toList();
-
-        return OrderListResponse.of(
-                content,
-                orderPage.getNumber(),
-                orderPage.getSize(),
-                orderPage.getTotalElements(),
-                orderPage.getTotalPages()
-        );
-    }
-
-    @Transactional(readOnly = true)
-    public OrderDetailResponse findOrderDetail(Long memberId, Long orderId) {
-        // JWT 인증 정보가 없으면 주문 상세를 조회할 수 없다.
+    @Transactional
+    public OrderCancelResponse cancelPendingOrder(Long memberId, Long orderId) {
+        // JWT 인증 정보가 없으면 주문을 취소할 없다.
         if (memberId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
@@ -199,14 +137,31 @@ public class OrderService {
                 () -> new BusinessException(ErrorCode.ORDER_NOT_FOUND)
         );
 
-        // 주문 상품 목록은 주문 상세 응답에 필요하므로 별도로 조회
-        List<OrderItem> orderItems = orderItemRepository.findAllByOrder_IdOrderByIdAsc(orderId);
-
-        Payment payment = paymentRepository.findByOrder_Id(orderId).orElseThrow(
+        // 주문에 연결된 결제 정보를 조회한다.
+        Payment payment = paymentRepository.findByOrderId(orderId).orElseThrow(
                 () -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND)
         );
 
-        return OrderDetailResponse.of(order, orderItems, payment);
+        // 결제대기 주문과 결제대기 Payment만 취소할 수 있다.
+        validateCancelable(order, payment);
+
+        // 주문 상품 목록을 조회한다.
+        List<OrderItem> orderItems = orderItemRepository.findAllByOrder_IdOrderByIdAsc(orderId);
+
+        // 주문 생성 때 선차감한 재고를 복구
+        restoreStock(orderItems);
+
+        // 주문 생성 때 선처감한 포인트를 복구
+        restorePoint(order);
+
+        // 주문 상태를 CANCELED로 변경
+        // 동시에 두 취소 요청이 들어오면 Order의 @Version으로 하나만 성공하면 나머지는 롤백
+        order.cancel();
+
+        // 결제대기 Payment는 실제 결제가 진행되지 않았으므로 FAILED로 변경
+        payment.fail();
+
+        return OrderCancelResponse.of(order, payment);
     }
 
     private void usePoint(Member member, int totalAmount, int pointAmount) {
@@ -301,4 +256,41 @@ public class OrderService {
         );
     }
 
+    private void deleteOrderedCartItems(List<CartItem> cartItems) {
+        // 주문에 사용된 장바구니 상품은 다시 주문되지 않도록 삭제한다.
+        cartItemRepository.deleteAll(cartItems);
+    }
+
+    private void validateCancelable(Order order, Payment payment) {
+        // 결제대기 주문만 최소할 수 있다.
+        if (order.getStatus() != OrderStatus.PAYMENT_PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        // 결제 정보도 READY 상태여야 결제대기 주문 취소 가능
+        if (!payment.isReady()) {
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+    }
+
+    private void restoreStock(List<OrderItem> orderItems) {
+        for (OrderItem orderItem : orderItems) {
+            // OrderItem에는 Product 연관관계가 없으니 productId로 상품을 다시 조회
+            Product product = productRepository.findById(orderItem.getProductId()).orElseThrow(
+                    () -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+            );
+
+            // 주문 생성 시 선차감했던 수량만큼 재고를 복구
+            product.increaseStock(orderItem.getQuantity());
+        }
+    }
+
+    private void restorePoint(Order order) {
+        int pointAmount = order.getUsePointAmountSnapshot();
+
+        // 포인트를 사용한 주문일 때만 포인트를 복구
+        if (pointAmount > 0) {
+            order.getMember().restoreUsePoint(pointAmount);
+        }
+    }
 }

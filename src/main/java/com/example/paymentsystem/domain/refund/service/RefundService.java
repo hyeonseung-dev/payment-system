@@ -34,6 +34,8 @@ public class RefundService {
      * @param totalRefundAmount 전체 환불 금액
      * @param pointRefundAmount 포인트 환불 금액
      * @param pgRefundAmount PG 환불 금액
+     * @param earnedPointCancelAmount 적립 포인트 회수 금액
+     * @param earnedPointDeductionAmount 적립 포인트 부족으로 PG 환불액에서 차감한 금액
      * @return 저장된 환불 정보
      */
     @Transactional
@@ -42,14 +44,18 @@ public class RefundService {
             String reason,
             Long totalRefundAmount,
             Long pointRefundAmount,
-            Long pgRefundAmount
+            Long pgRefundAmount,
+            Long earnedPointCancelAmount,
+            Long earnedPointDeductionAmount
     ) {
         Refund refund = Refund.createCompleted(
                 payment,
                 reason,
                 totalRefundAmount,
                 pointRefundAmount,
-                pgRefundAmount
+                pgRefundAmount,
+                earnedPointCancelAmount,
+                earnedPointDeductionAmount
         );
         return refundRepository.save(refund);
     }
@@ -62,6 +68,8 @@ public class RefundService {
      * @param totalRefundAmount 전체 환불 금액
      * @param pointRefundAmount 포인트 환불 금액
      * @param pgRefundAmount PG 환불 금액
+     * @param earnedPointCancelAmount 적립 포인트 회수 금액
+     * @param earnedPointDeductionAmount 적립 포인트 부족으로 PG 환불액에서 차감한 금액
      * @return 저장된 환불 정보
      */
     @Transactional
@@ -70,14 +78,18 @@ public class RefundService {
             String reason,
             Long totalRefundAmount,
             Long pointRefundAmount,
-            Long pgRefundAmount
+            Long pgRefundAmount,
+            Long earnedPointCancelAmount,
+            Long earnedPointDeductionAmount
     ) {
         Refund refund = Refund.createFailed(
                 payment,
                 reason,
                 totalRefundAmount,
                 pointRefundAmount,
-                pgRefundAmount
+                pgRefundAmount,
+                earnedPointCancelAmount,
+                earnedPointDeductionAmount
         );
         return refundRepository.save(refund);
     }
@@ -178,5 +190,19 @@ public class RefundService {
                 RefundStatus.COMPLETED
         );
         return refundedQuantity.intValue();
+    }
+
+    /**
+     * 결제 ID 기준 완료 환불의 총 환불 금액 합계를 계산한다.
+     *
+     * @param paymentId 결제 ID
+     * @return 총 환불 금액 합계
+     */
+    @Transactional(readOnly = true)
+    public Long calculateCompletedTotalRefundAmount(Long paymentId) {
+        return refundRepository.sumTotalRefundAmountByPaymentIdAndStatus(
+                paymentId,
+                RefundStatus.COMPLETED
+        );
     }
 }

@@ -75,7 +75,20 @@ public class RefundFacade {
         }
 
         // PortOne 환불 성공 후에만 재고, 포인트, 결제/주문 상태를 실제로 변경한다.
-        RefundResponse response = refundCommandService.completeRequestedRefund(requestedRefund.refundId());
+        RefundResponse response;
+        try {
+            response = refundCommandService.completeRequestedRefund(requestedRefund.refundId());
+        } catch (RuntimeException e) {
+            // 이미 PortOne 환불이 성공했을 수 있으므로 FAILED로 바꾸지 않고 REQUESTED 상태를 유지해 수동 복구 대상으로 남긴다.
+            log.error("PortOne 환불 성공 후 내부 완료 처리 실패: refundId={}, paymentId={}, portonePaymentId={}, idempotencyKey={}, pgRefundAmount={}",
+                    requestedRefund.refundId(),
+                    paymentId,
+                    requestedRefund.portonePaymentId(),
+                    requestedRefund.idempotencyKey(),
+                    requestedRefund.pgRefundAmount(),
+                    e);
+            throw e;
+        }
         log.info("환불 완료: memberId={}, paymentId={}, refundId={}, totalRefundAmount={}, paymentStatus={}",
                 memberId, response.paymentId(), response.refundId(),
                 response.totalRefundAmount(), response.paymentStatus());

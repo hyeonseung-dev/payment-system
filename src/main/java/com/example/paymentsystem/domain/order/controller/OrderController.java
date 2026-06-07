@@ -42,7 +42,7 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 
-    @PatchMapping("/{orderId}/cancel")
+    @PostMapping("/{orderId}/cancel")
     public ResponseEntity<ApiResponse<OrderCancelResponse>> cancelPendingOrder(
             @AuthenticationPrincipal Long memberId,
             @PathVariable Long orderId

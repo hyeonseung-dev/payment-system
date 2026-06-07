@@ -1,5 +1,6 @@
 package com.example.paymentsystem.domain.payment.service;
 
+import com.example.paymentsystem.domain.cart.service.CartService;
 import com.example.paymentsystem.domain.payment.dto.PaymentCancelResponse;
 import com.example.paymentsystem.domain.payment.dto.PaymentConfirmResponse;
 import com.example.paymentsystem.domain.payment.entity.Payment;
@@ -24,6 +25,7 @@ public class PaymentCommandService {
     private static final String PAYMENT_CANCELLED_MESSAGE = "결제가 취소되었습니다.";
 
     private final PaymentService paymentService;
+    private final CartService cartService;
 
     /**
      * 결제 실패에 따른 내부 상태 변경을 처리한다.
@@ -69,7 +71,8 @@ public class PaymentCommandService {
                 orderId, payment.getId(), payment.getStatus(), payment.getOrder().getStatus());
 
         // 주문완료
-        // TODO: OrderService 구현 후 주문 완료 처리 연결
+        payment.getOrder().completePayment(payment.getOrder().getUsePointAmountSnapshot());
+        log.info("Order 완료 처리 완료: orderId={}, paymentId={}", orderId, payment.getId());
 
         // Payment 완료
         paymentService.confirmPayment(payment, LocalDateTime.now());
@@ -78,8 +81,9 @@ public class PaymentCommandService {
         // 포인트 적립
         // TODO: PointService 구현 후 pgAmount 기준 포인트 적립 처리 연결
 
-        // 장바구니 비우기
-        // TODO: CartService 구현 후 회원 장바구니 비우기 처리 연결
+        // 주문에 사용된 장바구니 항목 삭제
+        cartService.deleteOrderedCartItemsByOrderId(orderId);
+        log.info("주문 장바구니 항목 삭제 완료: orderId={}, paymentId={}", orderId, payment.getId());
 
         PaymentConfirmResponse response = PaymentConfirmResponse.from(payment);
         log.info("결제 승인 처리 완료: orderId={}, paymentId={}, paymentStatus={}, orderStatus={}",

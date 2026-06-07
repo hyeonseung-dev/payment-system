@@ -82,10 +82,6 @@ public class OrderService {
         // PortOne 결제에 사용할 결제대기 Payment를 생성
         Payment payment = createReadyPayment(order, totalAmount, pgAmount);
 
-        // 주문에 사용한 장바구니 상품을 소비 처리한다.
-        // 결제 완료할 때 장바구니안에 상품을 삭제할 것인지 아니면 주문이 생성이 되면 장바구니를 비울것인지
-        deleteOrderedCartItems(cartItems);
-
         return CreateOrderResponse.of(order, payment, pointAmount);
     }
 
@@ -220,8 +216,4 @@ public class OrderService {
         );
     }
 
-    private void deleteOrderedCartItems(List<CartItem> cartItems) {
-        // 주문에 사용된 장바구니 상품은 다시 주문되지 않도록 삭제한다.
-        cartItemRepository.deleteAll(cartItems);
-    }
 }

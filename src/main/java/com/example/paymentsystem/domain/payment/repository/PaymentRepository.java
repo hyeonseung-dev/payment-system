@@ -33,4 +33,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
      * @return 존재하면 true
      */
     boolean existsByPortonePaymentId(String portonePaymentId);
+
+    Optional<Payment> findByOrder_Id(Long orderId);
 }

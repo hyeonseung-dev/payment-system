@@ -11,6 +11,7 @@ import com.example.paymentsystem.domain.order.entity.OrderItem;
 import com.example.paymentsystem.domain.order.repository.OrderItemRepository;
 import com.example.paymentsystem.domain.order.repository.OrderRepository;
 import com.example.paymentsystem.domain.payment.entity.Payment;
+import com.example.paymentsystem.domain.payment.entity.PaymentStatus;
 import com.example.paymentsystem.domain.payment.repository.PaymentRepository;
 import com.example.paymentsystem.domain.product.entity.Product;
 import com.example.paymentsystem.domain.product.repository.ProductRepository;
@@ -22,8 +23,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.lang.reflect.Field;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -321,6 +326,115 @@ class OrderServiceTest {
         verify(paymentRepository, never()).save(any(Payment.class));
     }
 
+    @Test
+    void 주문_목록_조회에_성공한다() {
+        // given
+        int page = 0;
+        int size = 10;
+
+        Order order = mock(Order.class);
+        OrderItem orderItem1 = mock(OrderItem.class);
+        OrderItem orderItem2 = mock(OrderItem.class);
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 주문 목록 조회 결과로 사용할 주문 데이터다.
+        when(order.getId()).thenReturn(1L);
+        when(order.getOrderNumber()).thenReturn("ORD-20260605-000001");
+        when(order.getStatus()).thenReturn(PAYMENT_PENDING);
+        when(order.getTotalAmount()).thenReturn(30_000);
+        when(order.getUsePointAmountSnapshot()).thenReturn(5_000);
+        when(order.getCreatedAt()).thenReturn(LocalDateTime.of(2026, 6, 5, 16, 30));
+
+        // 주문 상품을 주문 ID 기준으로 묶기 위해 OrderItem에서 Order를 꺼낼 수 있어야 한다.
+        when(orderItem1.getOrder()).thenReturn(order);
+        when(orderItem2.getOrder()).thenReturn(order);
+
+        when(orderRepository.findByMember_IdOrderByCreatedAtDesc(memberId, pageable))
+                .thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+
+        when(orderItemRepository.findAllByOrderIds(List.of(1L)))
+                .thenReturn(List.of(orderItem1, orderItem2));
+
+        // when
+        OrderListResponse response = orderService.findOrder(memberId, page, size);
+
+        // then
+        assertThat(response.content()).hasSize(1);
+        assertThat(response.page()).isEqualTo(0);
+        assertThat(response.size()).isEqualTo(10);
+        assertThat(response.totalElements()).isEqualTo(1);
+        assertThat(response.totalPages()).isEqualTo(1);
+
+        OrderListItemResponse item = response.content().get(0);
+
+        assertThat(item.orderId()).isEqualTo(1L);
+        assertThat(item.orderNumber()).isEqualTo("ORD-20260605-000001");
+        assertThat(item.status()).isEqualTo(PAYMENT_PENDING);
+        assertThat(item.itemCount()).isEqualTo(2);
+        assertThat(item.totalAmount()).isEqualTo(30_000);
+        assertThat(item.createAt()).isEqualTo(LocalDateTime.of(2026, 6, 5, 16, 30));
+
+        verify(orderRepository).findByMember_IdOrderByCreatedAtDesc(memberId, pageable);
+        verify(orderItemRepository).findAllByOrderIds(List.of(1L));
+    }
+
+    @Test
+    void 주문_목록이_없으면_빈_목록을_반환한다() {
+        // given
+        int page = 0;
+        int size = 10;
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 주문이 없는 상황은 예외가 아니라 빈 페이지로 응답한다.
+        when(orderRepository.findByMember_IdOrderByCreatedAtDesc(memberId, pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        // when
+        OrderListResponse response = orderService.findOrder(memberId, page, size);
+
+        // then
+        assertThat(response.content()).isEmpty();
+        assertThat(response.page()).isEqualTo(0);
+        assertThat(response.size()).isEqualTo(10);
+        assertThat(response.totalElements()).isEqualTo(0);
+        assertThat(response.totalPages()).isEqualTo(0);
+
+        // 주문이 없으면 주문 상품 조회는 하지 않아도 된다.
+        verify(orderItemRepository, never()).findAllByOrderIds(anyList());
+    }
+
+    @Test
+    void 주문_목록_조회_시_인증_정보가_없으면_예외가_발생한다() {
+        // given
+        int page = 0;
+        int size = 10;
+
+        // when & then
+        assertThatThrownBy(() -> orderService.findOrder(null, page, size))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.UNAUTHORIZED.getMessage());
+
+        verify(orderRepository, never()).findByMember_IdOrderByCreatedAtDesc(anyLong(), any(Pageable.class));
+        verify(orderItemRepository, never()).findAllByOrderIds(anyList());
+    }
+
+    @Test
+    void 주문_목록_조회_시_페이지_요청값이_잘못되면_예외가_발생한다() {
+        // given
+        int page = -1;
+        int size = 10;
+
+        // when & then
+        assertThatThrownBy(() -> orderService.findOrder(memberId, page, size))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.INVALID_INPUT.getMessage());
+
+        verify(orderRepository, never()).findByMember_IdOrderByCreatedAtDesc(anyLong(), any(Pageable.class));
+        verify(orderItemRepository, never()).findAllByOrderIds(anyList());
+    }
+
     private CartItem createCartItemFixture(
             Long cartItemId,
             Long productId,
@@ -397,6 +511,125 @@ class OrderServiceTest {
 
         verify(orderRepository, never()).save(any(Order.class));
         verify(paymentRepository, never()).save(any(Payment.class));
+    }
+
+    @Test
+    void 주문_상세_조회에_성공한다() {
+        // given
+        Long orderId = 1L;
+
+        Order order = mock(Order.class);
+        OrderItem orderItem = mock(OrderItem.class);
+        Payment payment = mock(Payment.class);
+
+        // 주문 상세 응답에 필요한 주문 정보를 준비한다.
+        when(order.getId()).thenReturn(orderId);
+        when(order.getOrderNumber()).thenReturn("ORD-20260605-000001");
+        when(order.getStatus()).thenReturn(PAYMENT_PENDING);
+        when(order.getTotalAmount()).thenReturn(30_000);
+        when(order.getUsePointAmountSnapshot()).thenReturn(5_000);
+        when(order.getCreatedAt()).thenReturn(LocalDateTime.of(2026, 6, 7, 13, 0));
+
+        // 주문 상세 응답에 필요한 주문 상품 스냅샷 정보를 준비한다.
+        when(orderItem.getId()).thenReturn(1L);
+        when(orderItem.getProductId()).thenReturn(1L);
+        when(orderItem.getProductNameSnapshot()).thenReturn("아이폰 케이스");
+        when(orderItem.getProductPriceSnapshot()).thenReturn(15_000);
+        when(orderItem.getQuantity()).thenReturn(2);
+
+        // 주문 상세 응답에 필요한 결제 정보를 준비한다.
+        when(payment.getStatus()).thenReturn(PaymentStatus.READY);
+        when(payment.getEarnedPointAmount()).thenReturn(0L);
+
+        // 주문 ID와 회원 ID가 모두 일치하는 주문만 조회된다.
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.of(order));
+
+        // 주문 상품과 결제 정보를 조회한다.
+        when(orderItemRepository.findAllByOrder_IdOrderByIdAsc(orderId))
+                .thenReturn(List.of(orderItem));
+        when(paymentRepository.findByOrder_Id(orderId))
+                .thenReturn(Optional.of(payment));
+
+        // when
+        OrderDetailResponse response = orderService.findOrderDetail(memberId, orderId);
+
+        // then
+        assertThat(response.orderId()).isEqualTo(orderId);
+        assertThat(response.orderNumber()).isEqualTo("ORD-20260605-000001");
+        assertThat(response.status()).isEqualTo(PAYMENT_PENDING);
+        assertThat(response.totalAmount()).isEqualTo(30_000);
+        assertThat(response.pointAmount()).isEqualTo(5_000);
+        assertThat(response.pgAmount()).isEqualTo(25_000);
+        assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.READY);
+        assertThat(response.earnedPointAmount()).isEqualTo(0L);
+        assertThat(response.items()).hasSize(1);
+
+        OrderDetailItemResponse item = response.items().get(0);
+
+        assertThat(item.orderItemId()).isEqualTo(1L);
+        assertThat(item.productId()).isEqualTo(1L);
+        assertThat(item.productName()).isEqualTo("아이폰 케이스");
+        assertThat(item.price()).isEqualTo(15_000);
+        assertThat(item.quantity()).isEqualTo(2);
+        assertThat(item.subtotal()).isEqualTo(30_000);
+    }
+
+    @Test
+    void 주문_상세_조회_시_인증_정보가_없으면_예외가_발생한다() {
+        // given
+        Long orderId = 1L;
+
+        // when & then
+        assertThatThrownBy(() -> orderService.findOrderDetail(null, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.UNAUTHORIZED.getMessage());
+
+        // 인증 정보가 없으면 DB 조회를 하지 않는다.
+        verify(orderRepository, never()).findByIdAndMember_Id(anyLong(), anyLong());
+        verify(orderItemRepository, never()).findAllByOrder_IdOrderByIdAsc(anyLong());
+        verify(paymentRepository, never()).findByOrder_Id(anyLong());
+    }
+
+    @Test
+    void 주문_상세_조회_시_주문이_없거나_내_주문이_아니면_예외가_발생한다() {
+        // given
+        Long orderId = 1L;
+
+        // 주문 ID와 회원 ID가 일치하는 주문이 없으면 빈 Optional을 반환한다.
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> orderService.findOrderDetail(memberId, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.ORDER_NOT_FOUND.getMessage());
+
+        // 주문이 없으면 주문 상품과 결제 정보는 조회하지 않는다.
+        verify(orderItemRepository, never()).findAllByOrder_IdOrderByIdAsc(anyLong());
+        verify(paymentRepository, never()).findByOrder_Id(anyLong());
+    }
+
+    @Test
+    void 주문_상세_조회_시_결제_정보가_없으면_예외가_발생한다() {
+        // given
+        Long orderId = 1L;
+
+        Order order = mock(Order.class);
+
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.of(order));
+
+        // 주문 상품은 조회됐지만 결제 정보가 없는 상황이다.
+        when(orderItemRepository.findAllByOrder_IdOrderByIdAsc(orderId))
+                .thenReturn(List.of());
+        when(paymentRepository.findByOrder_Id(orderId))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> orderService.findOrderDetail(memberId, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.PAYMENT_NOT_FOUND.getMessage());
     }
 
     private Product createProduct(Long id, String name, int price, int stockQuantity) {

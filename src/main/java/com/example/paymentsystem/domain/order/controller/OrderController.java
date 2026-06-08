@@ -61,4 +61,14 @@ public class OrderController {
         OrderDetailResponse response = orderService.findOrderDetail(memberId, orderId);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
+
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<ApiResponse<OrderCancelResponse>> cancelPendingOrder(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long orderId
+    ) {
+        OrderCancelResponse response = orderService.cancelPendingOrder(memberId, orderId);
+
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
 }

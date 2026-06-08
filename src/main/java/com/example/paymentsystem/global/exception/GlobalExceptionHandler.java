@@ -92,6 +92,6 @@ public class GlobalExceptionHandler {
     ) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ApiResponse.error(
-                        ErrorCode.CART_ITEM_CONFLICT));
+                        ErrorCode.CONCURRENT_MODIFICATION));
     }
 }

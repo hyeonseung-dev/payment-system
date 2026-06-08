@@ -27,12 +27,13 @@
 
 ## Order
 
-| 기능 | Method | URL | 인증 |
-|---|---|---|---|
-| 주문서 미리보기 | POST | `api/orders/preview` | O |
-| 주문 생성 | POST | `/api/carts/orders` | O |
+| 기능         | Method | URL | 인증 |
+|------------|---|---|---|
+| 주문서 미리보기   | POST | `api/orders/preview` | O |
+| 장바구니 주문 생성 | POST | `/api/orders` | O |
+| 상품 주문 생성    | POST | `/api/orders/prducts` | O |
 | 내 주문 목록 조회 | GET | `/api/orders` | O |
-| 주문 상세 조회 | GET | `/api/orders/{orderId}` | O |
+| 주문 상세 조회   | GET | `/api/orders/{orderId}` | O |
 | 결제대기 주문 취소 | POST | `/api/orders/{orderId}/cancel` | O |
 
 ## Point

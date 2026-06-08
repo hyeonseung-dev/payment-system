@@ -30,6 +30,9 @@ public class OrderItem extends BaseEntity {
     @Column(nullable = false)
     private Long productId;
 
+    @Column(nullable = false)
+    private Long cartItemId;
+
     @Column(nullable = false, length = 100)
     private String productNameSnapshot;
 
@@ -39,13 +42,14 @@ public class OrderItem extends BaseEntity {
     @Column(nullable = false)
     private int quantity;
 
-    private OrderItem(Order order, Product product, int quantity) {
+    private OrderItem(Order order, Product product, int quantity, Long cartItemId) {
         if (quantity < 1) {
             throw new BusinessException(ErrorCode.INVALID_QUANTITY);
         }
 
         this.order = order;
         this.productId = product.getId();
+        this.cartItemId = cartItemId;
         this.productNameSnapshot = product.getName();
         this.productPriceSnapshot = product.getPrice();
         this.quantity = quantity;
@@ -53,6 +57,11 @@ public class OrderItem extends BaseEntity {
 
     public static OrderItem createSnapshot(Order order, CartItem cartItem) {
         // 장바구니 상품 기준으로 주문 상품 스냅샷을 생성한다.
-        return new OrderItem(order, cartItem.getProduct(), cartItem.getQuantity());
+        return new OrderItem(order, cartItem.getProduct(), cartItem.getQuantity(), cartItem.getId());
+    }
+
+    public static OrderItem createProductSnapshot(Order order, Product product, int quantity) {
+        // 상품 바로 주문에서는 CartItem이 없으므로 Product와 quantity로 스냅샷을 생성한다.
+        return new OrderItem(order, product, quantity, null);
     }
 }

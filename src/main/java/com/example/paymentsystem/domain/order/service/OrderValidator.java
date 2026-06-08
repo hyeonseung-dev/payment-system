@@ -28,4 +28,14 @@ public class OrderValidator {
             }
         }
     }
+
+    public void validateProductStock(Product product, int quantity) {
+        if (quantity < 1) {
+            throw new BusinessException(ErrorCode.INVALID_QUANTITY);
+        }
+
+        if (product.getStockQuantity() < quantity) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
+        }
+    }
 }

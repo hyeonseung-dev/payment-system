@@ -4,16 +4,15 @@ import com.example.paymentsystem.domain.cart.entity.CartItem;
 import com.example.paymentsystem.domain.cart.repository.CartItemRepository;
 import com.example.paymentsystem.domain.member.entity.Member;
 import com.example.paymentsystem.domain.member.repository.MemberRepository;
-import com.example.paymentsystem.domain.order.dto.CreateOrderRequest;
-import com.example.paymentsystem.domain.order.dto.CreateOrderResponse;
-import com.example.paymentsystem.domain.order.dto.OrderPreviewRequest;
-import com.example.paymentsystem.domain.order.dto.OrderPreviewResponse;
+import com.example.paymentsystem.domain.order.dto.*;
 import com.example.paymentsystem.domain.order.entity.Order;
 import com.example.paymentsystem.domain.order.entity.OrderItem;
 import com.example.paymentsystem.domain.order.repository.OrderItemRepository;
 import com.example.paymentsystem.domain.order.repository.OrderRepository;
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import com.example.paymentsystem.domain.payment.repository.PaymentRepository;
+import com.example.paymentsystem.domain.product.entity.Product;
+import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +33,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final PaymentRepository paymentRepository;
+    private final ProductRepository productRepository;
 
     @Transactional(readOnly = true)
     public OrderPreviewResponse previewOrder(Long memberId, OrderPreviewRequest request) {
@@ -82,8 +82,44 @@ public class OrderService {
         // PortOne 결제에 사용할 결제대기 Payment를 생성
         Payment payment = createReadyPayment(order, totalAmount, pgAmount);
 
-        // 주문에 사용한 장바구니 상품을 소비 처리한다.
-        deleteOrderedCartItems(cartItems);
+        return CreateOrderResponse.of(order, payment, pointAmount);
+    }
+
+    @Transactional
+    public CreateOrderResponse createProductOrder(Long memberId, CreateProductOrderRequest request) {
+        Member member = findMemberWithLock(memberId);
+
+        // 재고 선차감을 위해 상품 row에 비관적 락을 건다.
+        Product product = productRepository.findByIdWithLock(request.productId()).orElseThrow(
+                () -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        // 요청 수량만큼 재고가 충분한지 검증한다.
+        orderValidator.validateProductStock(product, request.quantity());
+
+        // 상품 가격과 요청 수량 기준으로 주문 총 금액을 계산
+        int totalAmount = product.getPrice() * request.quantity();
+
+        // 사용할 포인트를 꺼내 요청에 없으면 0
+        int pointAmount = request.getUsePointAmount();
+
+        // 포인트 사용 가능 여부를 검증하고 선차감
+        usePoint(member, totalAmount, pointAmount);
+
+        // PG사에 실제 결제할 금액을 계산
+        int pgAmount = calculatePgAmount(totalAmount, pointAmount);
+
+        // 검증이 끝났면 실제 상품 재고 선차감
+        product.decreaseStock(request.quantity());
+
+        // 결제대기 주문 생성
+        Order order = createPendingOrder(member, totalAmount, pointAmount);
+
+        // 주문 당시 상품명, 가격, 수량을 주문 상품 스냅샷으로 저장
+        OrderItem orderItem = OrderItem.createProductSnapshot(order, product, request.quantity());
+        orderItemRepository.save(orderItem);
+
+        // PortOne 결제에 사용할 결제대기 Payment 생성
+        Payment payment = createReadyPayment(order, totalAmount, pgAmount);
 
         return CreateOrderResponse.of(order, payment, pointAmount);
     }
@@ -180,8 +216,4 @@ public class OrderService {
         );
     }
 
-    private void deleteOrderedCartItems(List<CartItem> cartItems) {
-        // 주문에 사용된 장바구니 상품은 다시 주문되지 않도록 삭제한다.
-        cartItemRepository.deleteAll(cartItems);
-    }
 }

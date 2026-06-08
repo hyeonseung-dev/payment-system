@@ -25,7 +25,7 @@ public class CartItem extends BaseEntity {
 
     @Version
     @Column(nullable = false)
-    private Long version = 0L;
+    private Long version;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)

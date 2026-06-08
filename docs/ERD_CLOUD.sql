@@ -58,6 +58,7 @@ CREATE TABLE cart_items (
 
 CREATE TABLE orders (
     id BIGINT NOT NULL AUTO_INCREMENT,
+    version BIGINT NOT NULL,
     member_id BIGINT NOT NULL,
     order_number VARCHAR(50) NOT NULL,
     total_amount INT NOT NULL,

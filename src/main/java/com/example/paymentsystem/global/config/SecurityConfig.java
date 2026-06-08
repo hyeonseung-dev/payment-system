@@ -43,21 +43,13 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/payments/confirm").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/payments/*/cancel").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/payments/*/refunds").authenticated()
                         .requestMatchers(HttpMethod.GET, "/payment-test.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/config.js").permitAll()
-                        .requestMatchers(
-                                "/api/auth/signup",      // 회원가입
-                                "/api/auth/login",    // 로그인
-                                "/api/products/**",  // 상품 조회 (인증 불필요)
-                                "/api/portone/config", // PortOne 결제창 공개 설정
-                                "/api/webhooks/**",   // PortOne 웹훅 (JWT 대신 서명 검증)
-                                "/api/orders/**",
-                                "/api/carts/**",
-                                "/api/**"    // 임시로 인증 설정 하기 전에 모두 통과
-                        ).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/signup").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/portone/config").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/webhooks/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .build();

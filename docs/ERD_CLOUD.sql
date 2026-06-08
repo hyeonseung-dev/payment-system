@@ -7,22 +7,22 @@ CREATE TABLE members (
     email VARCHAR(100) NOT NULL,
     password VARCHAR(255) NOT NULL,
     name VARCHAR(50) NOT NULL,
-    phone_number VARCHAR(20) NOT NULL,
+    phone VARCHAR(30) NOT NULL,
     point_balance INT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_members_email (email),
-    UNIQUE KEY uk_members_phone_number (phone_number)
+    UNIQUE KEY uk_members_phone (phone)
 );
 
 CREATE TABLE products (
     product_id BIGINT NOT NULL AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL,
     price INT NOT NULL,
     stock_quantity INT NOT NULL,
-    description VARCHAR(255),
-    category VARCHAR(30) NOT NULL COMMENT 'CLOTHES, FOOD, ELECTRONICS',
+    description TEXT,
+    category VARCHAR(50) NOT NULL COMMENT 'CLOTHES, FOOD, ELECTRONICS',
     status VARCHAR(30) NOT NULL COMMENT 'FOR_SALE, SOLD_OUT, DISCONTINUED',
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE products (
 
 CREATE TABLE carts (
     id BIGINT NOT NULL AUTO_INCREMENT,
-    member_id BIGINT,
+    member_id BIGINT NOT NULL,
     created_at DATETIME NOT NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),
@@ -58,6 +58,7 @@ CREATE TABLE cart_items (
 
 CREATE TABLE orders (
     id BIGINT NOT NULL AUTO_INCREMENT,
+    version BIGINT NOT NULL,
     member_id BIGINT NOT NULL,
     order_number VARCHAR(50) NOT NULL,
     total_amount INT NOT NULL,
@@ -109,7 +110,7 @@ CREATE TABLE payments (
 );
 
 CREATE TABLE point_histories (
-    point_history_id BIGINT NOT NULL AUTO_INCREMENT,
+    id BIGINT NOT NULL AUTO_INCREMENT,
     payment_id BIGINT NOT NULL,
     member_id BIGINT NOT NULL,
     type VARCHAR(30) NOT NULL COMMENT 'USE, EARN, USE_CANCEL, EARN_CANCEL',

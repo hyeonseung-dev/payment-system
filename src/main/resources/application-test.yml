@@ -9,6 +9,7 @@
     hibernate:
       ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
+
 jwt:
   secret:
     key: ZmRqbHNkYWprZmpkaWFqaWVqNWprbGZua2xqZGxramFrbGpmaWxqZWlqbGFmamxrZGphbDQyNTZqZmRmNDU0OGE0ZDRmNWE0ZmQ0ZjY1YTQ4ZjQ1ZGE0NWZkNDVhZjQ1YTRmNWQ1YWY0YThzZjRkODRhNWY0NWQ0NTFmOGRhc2Zk

@@ -3,12 +3,13 @@ package com.example.paymentsystem.domain.point.entity;
 import com.example.paymentsystem.domain.point.enumtype.PointHistoryType;
 import com.example.paymentsystem.domain.member.entity.Member;
 import com.example.paymentsystem.global.common.BaseEntity;
+import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.Getter;
 import jakarta.persistence.*;
 
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "point_histories")
 public class PointHistory extends BaseEntity {

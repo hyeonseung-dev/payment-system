@@ -82,7 +82,7 @@ sequenceDiagram
     API->>DB: Order PAYMENT_PENDING 저장
     API->>DB: OrderItem 스냅샷 저장
     API->>DB: Payment READY 저장 earnedPointAmount=pgAmount 1%
-    API->>DB: 포인트 사용 시 PointHistory USE 저장
+    API->>DB: 포인트 사용 시 회원 포인트 선차감 및 PointHistory USE 저장
     API-->>Client: orderId, paymentId, portonePaymentId, pgAmount
 
     Client->>API: GET /api/portone/config
@@ -174,12 +174,12 @@ flowchart TD
     G --> H[사용 포인트 검증]
     H --> I{포인트 사용 가능?}
     I -->|아니오| I1[POINT_002 또는 POINT_004]
-    I -->|예| J[회원 포인트 선차감]
-    J --> K[pgAmount 계산]
-    K --> L[상품 재고 선차감]
-    L --> M[Order PAYMENT_PENDING 생성]
-    M --> N[OrderItem 상품 스냅샷 저장]
-    N --> O[Payment READY 생성]
+    I -->|예| J[pgAmount 계산]
+    J --> K[상품 재고 선차감]
+    K --> L[Order PAYMENT_PENDING 생성]
+    L --> M[OrderItem 상품 스냅샷 저장]
+    M --> N[Payment READY 생성]
+    N --> O[회원 포인트 선차감 및 PointHistory USE 저장]
     O --> P([주문 생성 응답 portonePaymentId])
 ```
 
@@ -281,7 +281,7 @@ flowchart TD
     E -->|예| F[pgAmount = totalAmount - usePointAmount]
     F --> G[earnedPointAmount = pgAmount 1%]
     G --> H[Payment READY 생성]
-    H --> H1[포인트 사용 시 PointHistory USE 저장]
+    H --> H1[포인트 사용 시 회원 포인트 선차감 및 PointHistory USE 저장]
     H1 --> I{pgAmount > 0?}
     I -->|예| J[PortOne 결제창 카드 결제]
     I -->|아니오| K[카드 결제창 생략 가능]
@@ -375,9 +375,10 @@ flowchart TD
     G --> H[주문 생성]
     H --> I[주문 상품 스냅샷 저장]
     I --> J[Payment READY 생성]
-    J --> K[PortOne 결제창 호출 또는 포인트 전액 결제]
-    K --> L[결제 확정]
-    L --> M([상품 주문 완료])
+    J --> K[포인트 사용 시 회원 포인트 선차감 및 PointHistory USE 저장]
+    K --> L[PortOne 결제창 호출 또는 포인트 전액 결제]
+    L --> M[결제 확정]
+    M --> N([상품 주문 완료])
 ```
 
 ## [포인트] 포인트 잔액 ↔ 원장 동기화 흐름

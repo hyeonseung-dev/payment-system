@@ -29,6 +29,8 @@ Server->>Server: Order 생성 PAYMENT_PENDING
 Server->>Server: OrderItem 스냅샷 저장
 Server->>Server: Payment 생성 READY
 Server->>Server: portonePaymentId 생성
+Server->>Server: 포인트 사용 시 회원 포인트 선차감
+Server->>Server: PointHistory USE 저장
 Server-->>User: orderId, orderNumber, totalAmount, usePointAmount, pgAmount, portonePaymentId
 
 alt pgAmount > 0

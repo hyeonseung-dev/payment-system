@@ -77,7 +77,7 @@ class OrderServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(ErrorCode.UNAUTHORIZED.getMessage());
 
-        verify(memberRepository, never()).findById(any());
+        verify(memberRepository, never()).findByIdWithLock(any());
         verify(orderRepository, never()).save(any(Order.class));
         verify(paymentRepository, never()).save(any(Payment.class));
     }
@@ -533,7 +533,7 @@ class OrderServiceTest {
                 "test@test.com",
                 "password",
                 "테스터",
-                "01012345678",
+                "010-1234-5678",
                 pointBalance
         );
     }

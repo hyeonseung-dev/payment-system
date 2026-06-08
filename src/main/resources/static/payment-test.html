@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>결제창 테스트</title>
+  <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+  <script src="config.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #ff6b35;
+      --accent: #1a1a2e;
+      --success: #00c471;
+      --danger: #ff4757;
+      --text: #1a1a1a;
+      --text-sub: #666;
+      --border: #e0e0e0;
+      --bg: #f4f5f7;
+      --card: #fff;
+      --radius: 10px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                   "Pretendard", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--accent);
+      padding: 0 24px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      font-size: 17px;
+      font-weight: 900;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .logo span { color: var(--primary); }
+
+    .page-badge {
+      background: rgba(255, 107, 53, .2);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 107, 53, .35);
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 32px auto;
+      padding: 0 16px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .guide-banner {
+      background: #fffbe6;
+      border: 1px solid #ffe58f;
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #7d5a00;
+      line-height: 1.7;
+    }
+
+    .guide-banner strong { color: #5a3e00; }
+    .guide-banner ol { margin: 6px 0 0 16px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-head {
+      background: #f8f9fa;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .card-sub {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-left: auto;
+    }
+
+    .card-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+
+    label .required { color: var(--primary); margin-left: 2px; }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="tel"] {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+      width: 100%;
+    }
+
+    input:focus { border-color: var(--primary); }
+
+    .field-hint {
+      font-size: 11px;
+      color: #aaa;
+    }
+
+    #payBtn {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+    }
+
+    #payBtn:hover { background: #e55a24; }
+    #payBtn:disabled { opacity: .55; cursor: not-allowed; }
+
+    #resultPanel { display: none; }
+    .result-card-success { border-color: var(--success); }
+    .result-card-error { border-color: var(--danger); }
+
+    .result-head-success,
+    .result-head-error {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .result-head-success {
+      background: #e6faf2;
+      border-bottom: 1px solid #b2ecd5;
+      color: #007a47;
+    }
+
+    .result-head-error {
+      background: #fff0f0;
+      border-bottom: 1px solid #ffc5c5;
+      color: #c0392b;
+    }
+
+    .key-field {
+      background: #f8f9fa;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin: 14px 16px 0;
+    }
+
+    .key-field-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .key-field-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .key-value {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1a2e;
+      word-break: break-all;
+      flex: 1;
+    }
+
+    .copy-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover { background: #2d2d4e; }
+    .copy-btn.copied { background: var(--success); }
+
+    .next-hint {
+      margin: 10px 16px 14px;
+      background: #f0f4ff;
+      border: 1px solid #c7d7ff;
+      border-radius: 7px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #3450a3;
+      line-height: 1.6;
+    }
+
+    .json-section { padding: 0 16px 16px; }
+
+    .json-toggle {
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 10px;
+    }
+
+    .json-box {
+      background: #1a1a2e;
+      color: #a8d8a8;
+      font-family: var(--mono);
+      font-size: 12px;
+      border-radius: 7px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      white-space: pre;
+      margin-top: 6px;
+      line-height: 1.7;
+      display: none;
+    }
+
+    .json-box.open { display: block; }
+
+    @media (max-width: 560px) {
+      .field-row { grid-template-columns: 1fr; }
+      header { padding: 0 16px; }
+      .container { margin-top: 20px; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <a class="logo" href="/"><span>S</span>PARTA SHOP</a>
+  <span class="page-badge">결제창 테스트</span>
+</header>
+
+<div class="container">
+  <div class="guide-banner">
+    <strong>사용 순서</strong>
+    <ol>
+      <li>주문 생성 또는 테스트 SQL로 Payment READY 데이터를 준비합니다.</li>
+      <li>아래에 서버가 생성한 <strong>portonePaymentId</strong>와 <strong>PG 결제 금액</strong>을 입력합니다.</li>
+      <li>결제 완료 후 같은 <strong>portonePaymentId</strong>로 <code>POST /api/payments/confirm</code>을 호출합니다.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="step-num">1</div>
+      <span class="card-title">주문 결제 정보 입력</span>
+      <span class="card-sub">필수 입력</span>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>포트원 결제 ID <span class="required">*</span></label>
+        <input type="text" id="portonePaymentId" placeholder="Payment.portonePaymentId 값을 입력하세요" />
+        <span class="field-hint">서버 DB에 저장된 portonePaymentId와 동일해야 결제 확정 검증을 통과합니다.</span>
+      </div>
+      <div class="field">
+        <label>결제 금액 (원) <span class="required">*</span></label>
+        <input type="number" id="amount" placeholder="ex) 55000" min="100" />
+        <span class="field-hint">Payment.pgAmount와 동일한 금액을 입력하세요.</span>
+      </div>
+      <div class="field">
+        <label>주문명</label>
+        <input type="text" id="orderName" value="스파르타 테스트 상품" />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="step-num">2</div>
+      <span class="card-title">결제자 정보</span>
+      <span class="card-sub">기본값 사용 가능</span>
+    </div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field">
+          <label>이름</label>
+          <input type="text" id="payerName" value="홍길동" />
+        </div>
+        <div class="field">
+          <label>이메일</label>
+          <input type="email" id="payerEmail" value="test@example.com" />
+        </div>
+        <div class="field">
+          <label>연락처</label>
+          <input type="tel" id="payerPhone" value="01012345678" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button id="payBtn" onclick="openPayment()">결제창 열기</button>
+
+  <div class="card" id="resultPanel">
+    <div id="successResult" style="display:none">
+      <div class="result-head-success">결제 완료: PortOne 콜백을 받았습니다</div>
+      <div class="key-field">
+        <div class="key-field-label">portonePaymentId: 결제 확정 API에 사용</div>
+        <div class="key-field-row">
+          <span class="key-value" id="resultPaymentId">-</span>
+          <button class="copy-btn" onclick="copyValue('resultPaymentId', this)">복사</button>
+        </div>
+      </div>
+      <div class="next-hint">
+        위 <code>portonePaymentId</code>를 사용해서 <code>POST /api/payments/confirm</code>을 호출하세요.
+      </div>
+      <div class="json-section">
+        <button class="json-toggle" onclick="toggleJson(this, 'successJson')">▶ PortOne 응답 전체 보기</button>
+        <pre class="json-box" id="successJson"></pre>
+      </div>
+    </div>
+
+    <div id="errorResult" style="display:none">
+      <div class="result-head-error">결제 실패 또는 취소</div>
+      <div class="json-section">
+        <button class="json-toggle" onclick="toggleJson(this, 'errorJson')" style="margin-top:10px">▶ 오류 응답 보기</button>
+        <pre class="json-box" id="errorJson"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function openPayment() {
+    const portonePaymentId = document.getElementById("portonePaymentId").value.trim();
+    const amountRaw = document.getElementById("amount").value;
+    const orderName = document.getElementById("orderName").value.trim() || "스파르타 테스트 상품";
+    const fullName = document.getElementById("payerName").value.trim() || "홍길동";
+    const email = document.getElementById("payerEmail").value.trim() || "test@example.com";
+    const phoneNumber = document.getElementById("payerPhone").value.trim() || "01012345678";
+
+    if (!portonePaymentId) {
+      alert("포트원 결제 ID를 입력하세요.");
+      return;
+    }
+
+    const amount = parseInt(amountRaw, 10);
+    if (!amount || amount < 100) {
+      alert("결제 금액을 올바르게 입력하세요. 최소 100원입니다.");
+      return;
+    }
+
+    const btn = document.getElementById("payBtn");
+    btn.disabled = true;
+    btn.textContent = "결제창 여는 중...";
+    hideResult();
+
+    try {
+      const config = await CONFIG.load();
+      console.log("PortOne config:", config);
+      const response = await PortOne.requestPayment({
+        storeId: config.storeId,
+        channelKey: config.channelKey,
+        paymentId: portonePaymentId,
+        orderName,
+        totalAmount: amount,
+        currency: "CURRENCY_KRW",
+        payMethod: "CARD",
+        customer: { fullName, email, phoneNumber }
+      });
+
+      showSuccess(response);
+    } catch (e) {
+      console.error("PortOne payment error:", e);
+      showError(e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "결제창 열기";
+    }
+  }
+
+  function showSuccess(response) {
+    document.getElementById("resultPanel").style.display = "block";
+    document.getElementById("successResult").style.display = "block";
+    document.getElementById("errorResult").style.display = "none";
+    document.getElementById("resultPaymentId").textContent = response.paymentId || "(paymentId 없음)";
+    document.getElementById("successJson").textContent = JSON.stringify(response, null, 2);
+  }
+
+  function showError(e) {
+    document.getElementById("resultPanel").style.display = "block";
+    document.getElementById("successResult").style.display = "none";
+    document.getElementById("errorResult").style.display = "block";
+
+    const payload = normalizeError(e);
+    document.getElementById("errorJson").textContent = JSON.stringify(payload, null, 2);
+    document.getElementById("errorJson").classList.add("open");
+
+    const toggle = document.querySelector("#errorResult .json-toggle");
+    if (toggle) {
+      toggle.textContent = "▼ 오류 응답 보기";
+    }
+  }
+
+  function normalizeError(e) {
+    if (!e || typeof e !== "object") {
+      return { message: String(e) };
+    }
+
+    const payload = {
+      name: e.name,
+      message: e.message,
+      code: e.code,
+      type: e.type,
+      reason: e.reason,
+      details: e.details,
+      response: e.response,
+      stack: e.stack
+    };
+
+    for (const key of Object.getOwnPropertyNames(e)) {
+      payload[key] = e[key];
+    }
+
+    return Object.fromEntries(
+            Object.entries(payload).filter(([, value]) => value !== undefined)
+    );
+  }
+
+  function hideResult() {
+    document.getElementById("resultPanel").style.display = "none";
+    document.getElementById("successResult").style.display = "none";
+    document.getElementById("errorResult").style.display = "none";
+    document.querySelectorAll(".json-box").forEach(el => el.classList.remove("open"));
+  }
+
+  function toggleJson(btn, targetId) {
+    const box = document.getElementById(targetId);
+    const open = box.classList.toggle("open");
+    btn.textContent = (open ? "▼ " : "▶ ") + btn.textContent.slice(2);
+  }
+
+  function copyValue(id, btn) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = "복사됨";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = "복사";
+        btn.classList.remove("copied");
+      }, 1800);
+    });
+  }
+</script>
+</body>
+</html>

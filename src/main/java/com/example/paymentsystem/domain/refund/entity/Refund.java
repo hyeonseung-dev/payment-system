@@ -46,6 +46,15 @@ public class Refund extends BaseEntity {
     @Column(nullable = false)
     private Long pgRefundAmount;
 
+    @Column(nullable = false)
+    private Long earnedPointCancelAmount;
+
+    @Column(nullable = false)
+    private Long earnedPointDeductionAmount;
+
+    @Column(nullable = false, length = 100)
+    private String idempotencyKey;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private RefundStatus status;
@@ -56,6 +65,9 @@ public class Refund extends BaseEntity {
             Long totalRefundAmount,
             Long pointRefundAmount,
             Long pgRefundAmount,
+            Long earnedPointCancelAmount,
+            Long earnedPointDeductionAmount,
+            String idempotencyKey,
             RefundStatus status
     ) {
         this.payment = payment;
@@ -63,25 +75,34 @@ public class Refund extends BaseEntity {
         this.totalRefundAmount = totalRefundAmount;
         this.pointRefundAmount = pointRefundAmount;
         this.pgRefundAmount = pgRefundAmount;
+        this.earnedPointCancelAmount = earnedPointCancelAmount;
+        this.earnedPointDeductionAmount = earnedPointDeductionAmount;
+        this.idempotencyKey = idempotencyKey;
         this.status = status;
     }
 
     /**
-     * 정상 완료된 환불 정보를 생성한다.
+     * 요청 상태의 환불 정보를 생성한다.
      *
      * @param payment 환불 대상 결제
      * @param reason 환불 사유
      * @param totalRefundAmount 전체 환불 금액
      * @param pointRefundAmount 포인트 환불 금액
      * @param pgRefundAmount PG 환불 금액
-     * @return 완료 상태의 환불 엔티티
+     * @param earnedPointCancelAmount 적립 포인트 회수 금액
+     * @param earnedPointDeductionAmount 적립 포인트 부족으로 PG 환불액에서 차감한 금액
+     * @param idempotencyKey PortOne 멱등성 키
+     * @return 요청 상태의 환불 엔티티
      */
-    public static Refund createCompleted(
+    public static Refund createRequested(
             Payment payment,
             String reason,
             Long totalRefundAmount,
             Long pointRefundAmount,
-            Long pgRefundAmount
+            Long pgRefundAmount,
+            Long earnedPointCancelAmount,
+            Long earnedPointDeductionAmount,
+            String idempotencyKey
     ) {
         return new Refund(
                 payment,
@@ -89,7 +110,10 @@ public class Refund extends BaseEntity {
                 totalRefundAmount,
                 pointRefundAmount,
                 pgRefundAmount,
-                RefundStatus.COMPLETED
+                earnedPointCancelAmount,
+                earnedPointDeductionAmount,
+                idempotencyKey,
+                RefundStatus.REQUESTED
         );
     }
 
@@ -101,6 +125,9 @@ public class Refund extends BaseEntity {
      * @param totalRefundAmount 전체 환불 금액
      * @param pointRefundAmount 포인트 환불 금액
      * @param pgRefundAmount PG 환불 금액
+     * @param earnedPointCancelAmount 적립 포인트 회수 금액
+     * @param earnedPointDeductionAmount 적립 포인트 부족으로 PG 환불액에서 차감한 금액
+     * @param idempotencyKey PortOne 멱등성 키
      * @return 실패 상태의 환불 엔티티
      */
     public static Refund createFailed(
@@ -108,7 +135,10 @@ public class Refund extends BaseEntity {
             String reason,
             Long totalRefundAmount,
             Long pointRefundAmount,
-            Long pgRefundAmount
+            Long pgRefundAmount,
+            Long earnedPointCancelAmount,
+            Long earnedPointDeductionAmount,
+            String idempotencyKey
     ) {
         return new Refund(
                 payment,
@@ -116,7 +146,32 @@ public class Refund extends BaseEntity {
                 totalRefundAmount,
                 pointRefundAmount,
                 pgRefundAmount,
+                earnedPointCancelAmount,
+                earnedPointDeductionAmount,
+                idempotencyKey,
                 RefundStatus.FAILED
         );
+    }
+
+    /**
+     * 환불을 완료 상태로 변경한다.
+     */
+    public void complete() {
+        if (this.status == RefundStatus.COMPLETED) {
+            return;
+        }
+
+        this.status = RefundStatus.COMPLETED;
+    }
+
+    /**
+     * 환불을 실패 상태로 변경한다.
+     */
+    public void fail() {
+        if (this.status == RefundStatus.FAILED) {
+            return;
+        }
+
+        this.status = RefundStatus.FAILED;
     }
 }

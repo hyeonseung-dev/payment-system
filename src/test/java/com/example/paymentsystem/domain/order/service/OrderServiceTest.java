@@ -13,6 +13,7 @@ import com.example.paymentsystem.domain.order.repository.OrderRepository;
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import com.example.paymentsystem.domain.payment.entity.PaymentStatus;
 import com.example.paymentsystem.domain.payment.repository.PaymentRepository;
+import com.example.paymentsystem.domain.point.service.PointService;
 import com.example.paymentsystem.domain.product.entity.Product;
 import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.global.error.BusinessException;
@@ -62,6 +63,8 @@ class OrderServiceTest {
     private PaymentRepository paymentRepository;
     @Mock
     private ProductRepository productRepository;
+    @Mock
+    private PointService pointService;
 
     Long memberId = 1L;
     Long cartItemId = 1L;
@@ -184,6 +187,7 @@ class OrderServiceTest {
         when(order.getTotalAmount()).thenReturn(30000);
 
         when(payment.getPortonePaymentId()).thenReturn("pay_1234567890");
+        when(payment.getId()).thenReturn(1L);
         when(payment.getPgAmount()).thenReturn(25000L);
 
         // when
@@ -197,13 +201,13 @@ class OrderServiceTest {
         assertThat(response.pointAmount()).isEqualTo(5_000);
         assertThat(response.pgAmount()).isEqualTo(25_000);
 
-        assertThat(member.getPointBalance()).isEqualTo(5_000);
         assertThat(product.getStockQuantity()).isEqualTo(8);
 
         verify(orderValidator).validateCartItems(List.of(cartItem), cartItemIds);
         verify(orderValidator).validateStock(List.of(cartItem));
         verify(orderItemRepository).saveAll(anyList());
         verify(paymentRepository).save(any(Payment.class));
+        verify(pointService).usePoint(memberId, 1L, 5_000);
     }
 
     @Test
@@ -281,6 +285,7 @@ class OrderServiceTest {
 
         // 응답 DTO 생성에 필요한 결제 값이다.
         when(payment.getPortonePaymentId()).thenReturn("pay_12345678");
+        when(payment.getId()).thenReturn(1L);
         when(payment.getPgAmount()).thenReturn(25_000L);
 
         // when
@@ -295,8 +300,7 @@ class OrderServiceTest {
         assertThat(response.pointAmount()).isEqualTo(5_000);
         assertThat(response.pgAmount()).isEqualTo(25_000);
 
-        // 포인트와 재고가 실제로 차감됐는지 확인한다.
-        assertThat(member.getPointBalance()).isEqualTo(5_000);
+        // 재고가 실제로 차감됐는지 확인한다. 포인트 차감과 이력 저장은 PointService가 담당한다.
         assertThat(product.getStockQuantity()).isEqualTo(8);
 
         // 상품 바로 주문은 장바구니를 사용하지 않는다.
@@ -305,6 +309,7 @@ class OrderServiceTest {
         // 주문 상품 스냅샷과 결제대기 Payment가 저장됐는지 확인한다.
         verify(orderItemRepository).save(any(OrderItem.class));
         verify(paymentRepository).save(any(Payment.class));
+        verify(pointService).usePoint(memberId, 1L, 5_000);
     }
 
     @Test
@@ -669,8 +674,8 @@ class OrderServiceTest {
         // 주문 취소 시 선차감했던 재고가 복구되어야 한다.
         assertThat(product.getStockQuantity()).isEqualTo(10);
 
-        // 주문 생성 시 사용했던 포인트도 복구되어야 한다.
-        assertThat(member.getPointBalance()).isEqualTo(5_000);
+        // 주문 생성 시 사용했던 포인트도 PointHistory와 함께 복구되어야 한다.
+        verify(pointService).cancelUsePoint(memberId, payment.getId(), 5_000);
     }
 
     @Test

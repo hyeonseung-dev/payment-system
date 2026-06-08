@@ -30,7 +30,6 @@ public class OrderItem extends BaseEntity {
     @Column(nullable = false)
     private Long productId;
 
-    @Column(nullable = false)
     private Long cartItemId;
 
     @Column(nullable = false, length = 100)

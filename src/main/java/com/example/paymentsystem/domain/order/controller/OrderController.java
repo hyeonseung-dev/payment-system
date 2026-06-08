@@ -52,4 +52,13 @@ public class OrderController {
 
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<ApiResponse<OrderDetailResponse>> findOrderDetail(
+            @AuthenticationPrincipal Long memberId,
+            @PathVariable Long orderId
+    ) {
+        OrderDetailResponse response = orderService.findOrderDetail(memberId, orderId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
 }

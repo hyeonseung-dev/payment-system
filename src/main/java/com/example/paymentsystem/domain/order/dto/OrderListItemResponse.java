@@ -16,8 +16,6 @@ public record OrderListItemResponse(
         LocalDateTime createAt
 ) {
     public static OrderListItemResponse from(Order order, List<OrderItem> orderItems) {
-        // 포인트 사용 금액을 제외하고 실제  PG 결제 금액을 계산한다.
-        int pgAmount = order.getTotalAmount() - order.getUsePointAmountSnapshot();
 
         return new OrderListItemResponse(
                 order.getId(),

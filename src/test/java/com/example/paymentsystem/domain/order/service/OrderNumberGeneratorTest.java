@@ -18,7 +18,7 @@ class OrderNumberGeneratorTest {
 
         // then
         assertThat(orderNumber)
-                .startsWith("ORD~")
-                .matches("ORD~\\d{14}-[a-f0-9]{8}");
+                .startsWith("ORD-")
+                .matches("ORD-\\d{14}-[a-f0-9]{8}");
     }
 }

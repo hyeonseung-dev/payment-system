@@ -187,6 +187,28 @@ public class OrderService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public OrderDetailResponse findOrderDetail(Long memberId, Long orderId) {
+        // JWT 인증 정보가 없으면 주문 상세를 조회할 수 없다.
+        if (memberId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // 주문이 없거나 다른 회원의 주문이면 모두 ORDER_NOT_FOUND로 처리
+        Order order = orderRepository.findByIdAndMember_Id(orderId, memberId).orElseThrow(
+                () -> new BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        );
+
+        // 주문 상품 목록은 주문 상세 응답에 필요하므로 별도로 조회
+        List<OrderItem> orderItems = orderItemRepository.findAllByOrder_IdOrderByIdAsc(orderId);
+
+        Payment payment = paymentRepository.findByOrder_Id(orderId).orElseThrow(
+                () -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND)
+        );
+
+        return OrderDetailResponse.of(order, orderItems, payment);
+    }
+
     private void usePoint(Member member, int totalAmount, int pointAmount) {
         // 주문 금액보다 많은 포인트는 사용할 수 없다.
         if (pointAmount > totalAmount) {

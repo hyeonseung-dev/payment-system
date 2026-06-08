@@ -46,6 +46,10 @@ public class CartService {
     @Transactional
     public Long addItem(Long memberId, Long productId, int quantity) {
 
+        if (memberId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
         Product product = productRepository.findById(productId).orElseThrow(
                 () -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
         );
@@ -71,6 +75,11 @@ public class CartService {
     }
 
     private Cart getOrCreateCart(Long memberId) {
+
+        if (memberId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
         return cartRepository.findByMember_Id(memberId).orElseGet(
                 () -> {
                     Member member = memberRepository.findById(memberId).orElseThrow(

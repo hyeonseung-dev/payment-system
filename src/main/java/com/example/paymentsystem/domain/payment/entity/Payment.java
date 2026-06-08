@@ -130,6 +130,20 @@ public class Payment extends BaseEntity {
     }
 
     /**
+     * 결제를 취소 상태로 변경한다.
+     *
+     * <p>결제 완료 후 주문 취소로 PG 결제 전체가 취소된 경우 호출한다.
+     * 이미 CANCELLED 상태라면 결제취소 중복 호출로 보고 멱등하게 무시한다.</p>
+     */
+    public void cancel() {
+        if (status == PaymentStatus.CANCELLED) {
+            return;
+        }
+
+        transitTo(PaymentStatus.CANCELLED);
+    }
+
+    /**
      * 결제를 부분 환불 상태로 변경한다.
      *
      * <p>결제 완료 후 주문 상품 중 일부만 환불되어 환불 가능 금액이 남아 있는 경우 호출한다.
@@ -182,6 +196,15 @@ public class Payment extends BaseEntity {
      */
     public boolean isRefunded() {
         return status == PaymentStatus.REFUNDED;
+    }
+
+    /**
+     * 결제가 취소 상태인지 확인한다.
+     *
+     * @return CANCELLED 상태이면 true
+     */
+    public boolean isCancelled() {
+        return status == PaymentStatus.CANCELLED;
     }
 
     private void transitTo(PaymentStatus nextStatus) {

@@ -1,4 +1,4 @@
-package com.example.paymentsystem.infra.portone;
+package com.example.paymentsystem.infra.portone.dto;
 
 /**
  * PortOne 결제 취소 응답 DTO이다.

@@ -6,7 +6,7 @@ import com.example.paymentsystem.domain.point.service.PointService;
 import com.example.paymentsystem.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,23 +18,23 @@ public class PointController {
 
     @GetMapping("/balance")
     public ResponseEntity<ApiResponse<PointBalanceResponse>> getBalance(
-            Authentication authentication
+            @AuthenticationPrincipal Long memberId
     ) {
-        Long memberId = Long.parseLong(authentication.getName());
+        PointBalanceResponse response =
+                pointService.getBalance(memberId);
 
-        PointBalanceResponse response = pointService.getBalance(memberId);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @GetMapping("/histories")
     public ResponseEntity<ApiResponse<PointHistoryPageResponse>> getPointHistories(
-            Authentication authentication,
+            @AuthenticationPrincipal Long memberId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Long memberId = Long.parseLong(authentication.getName());
+        PointHistoryPageResponse response =
+                pointService.getPointHistories(memberId, page, size);
 
-        PointHistoryPageResponse response = pointService.getPointHistories(memberId, page, size);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }

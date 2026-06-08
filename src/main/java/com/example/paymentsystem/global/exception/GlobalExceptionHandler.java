@@ -7,6 +7,7 @@ import jakarta.persistence.OptimisticLockException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -44,6 +45,20 @@ public class GlobalExceptionHandler {
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("입력값이 올바르지 않습니다.");
         log.warn("[ValidationException] message={}", message);
+        return ResponseEntity
+                .status(ErrorCode.INVALID_INPUT.getStatus())
+                .body(ApiResponse.error(ErrorCode.INVALID_INPUT, message));
+    }
+
+    /**
+     * 요청 본문 누락 또는 JSON 파싱 실패 처리
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException e
+    ) {
+        String message = "요청 본문이 올바르지 않습니다.";
+        log.warn("[HttpMessageNotReadableException] message={}", e.getMessage());
         return ResponseEntity
                 .status(ErrorCode.INVALID_INPUT.getStatus())
                 .body(ApiResponse.error(ErrorCode.INVALID_INPUT, message));

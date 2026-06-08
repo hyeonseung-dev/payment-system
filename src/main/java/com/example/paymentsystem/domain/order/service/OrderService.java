@@ -17,11 +17,16 @@ import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -83,9 +88,6 @@ public class OrderService {
         // PortOne 결제에 사용할 결제대기 Payment를 생성
         Payment payment = createReadyPayment(order, totalAmount, pgAmount);
 
-        // 주문에 사용한 장바구니 상품을 소비 처리한다.
-        deleteOrderedCartItems(cartItems);
-
         return CreateOrderResponse.of(order, payment, pointAmount);
     }
 
@@ -128,11 +130,91 @@ public class OrderService {
         return CreateOrderResponse.of(order, payment, pointAmount);
     }
 
+    @Transactional(readOnly = true)
+    public OrderListResponse findOrder(Long memberId, int page, int size) {
+        // JWT 인증 정보가 없으면 주문 목록을 조회할 수 없다.
+        if (memberId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        if (page < 0 || size < 1) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 로그인한 회원의 주문만 최신순으로 조회한다.
+        Page<Order> orderPage = orderRepository.findByMember_IdOrderByCreatedAtDesc(memberId, pageable);
+
+        List<Order> orders = orderPage.getContent();
+
+        // 주문이 없으면 빈 목록을 반환한다.
+        if (orders.isEmpty()) {
+            return OrderListResponse.of(
+                    List.of(),
+                    orderPage.getNumber(),
+                    orderPage.getSize(),
+                    orderPage.getTotalElements(),
+                    orderPage.getTotalPages()
+            );
+        }
+
+        // 주문 ID 목록을 만든다.
+        List<Long> list = orders.stream()
+                .map(Order::getId)
+                .toList();
+
+        // 주문 상품을 한 번에 조회해서 N+1 문제를 피한다.
+        List<OrderItem> orderItems = orderItemRepository.findAllByOrderIds(list);
+
+        // 주문 ID 기준으로 주문 상품을 묶는다.
+        Map<Long, List<OrderItem>> orderItemMap = orderItems.stream()
+                .collect(Collectors.groupingBy(orderItem -> orderItem.getOrder().getId()));
+
+        // 주문 목록 응답 DTO로 변환한다.
+        List<OrderListItemResponse> content = orders.stream()
+                .map(order -> OrderListItemResponse.from(
+                        order,
+                        orderItemMap.getOrDefault(order.getId(), List.of())
+                ))
+                .toList();
+
+        return OrderListResponse.of(
+                content,
+                orderPage.getNumber(),
+                orderPage.getSize(),
+                orderPage.getTotalElements(),
+                orderPage.getTotalPages()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public OrderDetailResponse findOrderDetail(Long memberId, Long orderId) {
+        // JWT 인증 정보가 없으면 주문 상세를 조회할 수 없다.
+        if (memberId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // 주문이 없거나 다른 회원의 주문이면 모두 ORDER_NOT_FOUND로 처리
+        Order order = orderRepository.findByIdAndMember_Id(orderId, memberId).orElseThrow(
+                () -> new BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        );
+
+        // 주문 상품 목록은 주문 상세 응답에 필요하므로 별도로 조회
+        List<OrderItem> orderItems = orderItemRepository.findAllByOrder_IdOrderByIdAsc(orderId);
+
+        Payment payment = paymentRepository.findByOrder_Id(orderId).orElseThrow(
+                () -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND)
+        );
+
+        return OrderDetailResponse.of(order, orderItems, payment);
+    }
+
     @Transactional
     public OrderCancelResponse cancelPendingOrder(Long memberId, Long orderId) {
         // JWT 인증 정보가 없으면 주문을 취소할 없다.
         if (memberId == null) {
-            throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         // 주문이 없거나 다른 회원의 주문이면 모두 ORDER_NOT_FOUND로 처리
@@ -141,7 +223,7 @@ public class OrderService {
         );
 
         // 주문에 연결된 결제 정보를 조회한다.
-        Payment payment = paymentRepository.findByOrderId(orderId).orElseThrow(
+        Payment payment = paymentRepository.findByOrder_Id(orderId).orElseThrow(
                 () -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND)
         );
 

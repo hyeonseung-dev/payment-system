@@ -739,7 +739,7 @@ Authorization: Bearer {accessToken}
     "pgAmount": 19000,
     "createAt": "2026-06-08T12:30:00",
     "paymentStatus": "READY",
-    "earnedPointAmount": 0,
+    "earnedPointAmount": 190,
     "items": [
       {
         "orderItemId": 1,
@@ -779,7 +779,8 @@ Authorization: Bearer {accessToken}
 5. 결제창 완료 후 클라이언트는 `/api/payments/confirm`으로 결제 확정을 요청합니다.
 6. 서버는 DB의 `portonePaymentId`와 요청값을 비교하고, PortOne API로 결제 상태와 금액을 재조회합니다.
 7. 결제 상태가 `PAID`이고 서버 계산 PG 금액과 PortOne 승인 금액이 일치하면 결제 완료 처리합니다.
-8. PortOne 웹훅이 먼저 또는 나중에 도착해도 공통 결제 확정 로직으로 멱등 처리합니다.
+8. 결제 완료 시 `pgAmount`의 1%를 포인트로 적립합니다.
+9. PortOne 웹훅이 먼저 또는 나중에 도착해도 공통 결제 확정 로직으로 멱등 처리합니다.
 
 ## 1. PortOne 공개 설정 조회
 
@@ -842,7 +843,7 @@ Authorization: Bearer {accessToken}
     "totalAmount": 20000,
     "pointAmount": 1000,
     "pgAmount": 19000,
-    "earnedPointAmount": 0
+    "earnedPointAmount": 190
   }
 }
 ```

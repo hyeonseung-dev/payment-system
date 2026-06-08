@@ -33,6 +33,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderService {
 
+    private static final int POINT_EARN_RATE_DIVISOR = 100;
+
     private final CartItemRepository cartItemRepository;
     private final OrderValidator orderValidator;
     private final MemberRepository memberRepository;
@@ -318,9 +320,7 @@ public class OrderService {
         // PortOne 결제창에서 사용할 결제 식별자를 생성
         String portonePaymentId = createPortonePaymentId();
 
-        // todo 포인트 적립 예정 로직 구현 후 수정 예정
-        // 아직 결제 성공 전이므로 적립 예정 포인트는 0으로 둔다.
-        long earnedPointAmount = 0L;
+        long earnedPointAmount = calculateEarnedPointAmount(pgAmount);
 
         Payment payment = Payment.createReady(
                 order,
@@ -339,6 +339,14 @@ public class OrderService {
                 .toString()
                 .replace("-", "")
                 .substring(0, 8);
+    }
+
+    private long calculateEarnedPointAmount(int pgAmount) {
+        if (pgAmount <= 0) {
+            return 0L;
+        }
+
+        return pgAmount / POINT_EARN_RATE_DIVISOR;
     }
 
     private Member findMemberWithLock(Long memberId) {

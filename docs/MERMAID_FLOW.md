@@ -81,7 +81,8 @@ sequenceDiagram
     API->>DB: 재고 선차감
     API->>DB: Order PAYMENT_PENDING 저장
     API->>DB: OrderItem 스냅샷 저장
-    API->>DB: Payment READY 저장
+    API->>DB: Payment READY 저장 earnedPointAmount=pgAmount 1%
+    API->>DB: 포인트 사용 시 PointHistory USE 저장
     API-->>Client: orderId, paymentId, portonePaymentId, pgAmount
 
     Client->>API: GET /api/portone/config
@@ -103,6 +104,7 @@ sequenceDiagram
         API->>API: 결제 상태/금액 검증
     end
     API->>DB: Payment PAID, Order COMPLETED
+    API->>DB: 적립 포인트 PointHistory EARN 저장
     API->>DB: 장바구니 주문 항목 삭제
     API-->>Client: 결제 확정 결과
 
@@ -276,10 +278,11 @@ flowchart TD
     D -->|예| D1[POINT_004 사용할 수 없는 포인트]
     D -->|아니오| E{회원 포인트 충분?}
     E -->|아니오| E1[POINT_002 포인트 부족]
-    E -->|예| F[회원 포인트 선차감]
-    F --> G[pgAmount = totalAmount - usePointAmount]
+    E -->|예| F[pgAmount = totalAmount - usePointAmount]
+    F --> G[earnedPointAmount = pgAmount 1%]
     G --> H[Payment READY 생성]
-    H --> I{pgAmount > 0?}
+    H --> H1[포인트 사용 시 PointHistory USE 저장]
+    H1 --> I{pgAmount > 0?}
     I -->|예| J[PortOne 결제창 카드 결제]
     I -->|아니오| K[카드 결제창 생략 가능]
     J --> L[결제 확정 API]
@@ -289,7 +292,7 @@ flowchart TD
     M -->|아니오| O[PortOne 조회 생략]
     N --> P[Payment PAID / Order COMPLETED]
     O --> P
-    P --> Q[PointHistory USE 저장 대상]
+    P --> Q[PointHistory EARN 저장]
     Q --> R([복합 결제 완료])
 ```
 

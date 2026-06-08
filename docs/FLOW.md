@@ -22,6 +22,7 @@ Server->>Server: 주문 총액 계산
 Server->>Server: 포인트 잔액 조회
 Server->>Server: 사용 포인트 검증
 Server->>Server: PG 실결제 금액 계산
+Server->>Server: 적립 예정 포인트 계산 pgAmount 1%
 Server->>Server: 재고 검증
 Server->>Server: 재고 선차감
 Server->>Server: Order 생성 PAYMENT_PENDING
@@ -44,7 +45,7 @@ PortOne-->>Server: 결제 상태, 결제 금액
 Server->>Server: 결제 상태/금액/멱등성 검증
 Server->>Server: Order COMPLETED
 Server->>Server: Payment PAID
-Server->>Server: 포인트 사용/적립 처리
+Server->>Server: 포인트 적립 처리
 Server->>Server: PointHistory 저장
 Server->>Server: 장바구니 비우기
 Server-->>User: 결제 완료

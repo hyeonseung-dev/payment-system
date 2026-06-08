@@ -57,9 +57,7 @@ public class PointService {
         Pageable pageable = PageRequest.of(page, size);
 
         Page<PointHistory> histories =
-                pointHistoryRepository.findByMemberOrderByCreatedAtDesc(
-                        member,pageable
-                );
+                pointHistoryRepository.findByMemberOrderByCreatedAtDesc(member, pageable);
 
         List<PointHistoryResponse> content =
                 histories.getContent()

@@ -80,19 +80,22 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_KEY }}
-          envs: AWS_ACCOUNT_ID,AWS_REGION,ECR_REPOSITORY,IMAGE_TAG,DB_HOST,DB_USERNAME,DB_PASSWORD,JWT_SECRET_KEY,JWT_EXPIRATION,PORTONE_SECRET,PORTONE_STORE_ID,PORTONE_CHANNEL_KEY,PORTONE_API_SECRET
+          envs: AWS_ACCOUNT_ID,AWS_REGION,ECR_REPOSITORY,IMAGE_TAG,DB_HOST,DB_USERNAME,DB_PASSWORD,JWT_SECRET_KEY,JWT_EXPIRATION,PORTONE_WEBHOOK_SECRET,PORTONE_STORE_ID,PORTONE_CHANNEL_KEY,PORTONE_API_SECRET
           script: |
             echo "IMAGE_TAG: $IMAGE_TAG"
 
             IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY
 
+            # ECR 로그인
             aws ecr get-login-password --region $AWS_REGION | \
               docker login --username AWS --password-stdin \
               $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
+            # 기존 컨테이너 중지 및 삭제
             docker stop payment-app || true
             docker rm payment-app || true
 
+            # 새 이미지 pull 및 실행
             docker pull $IMAGE_URI:$IMAGE_TAG
             docker run -d \
               --name payment-app \
@@ -104,12 +107,13 @@ jobs:
               -e DB_PASSWORD=$DB_PASSWORD \
               -e JWT_SECRET_KEY=$JWT_SECRET_KEY \
               -e JWT_EXPIRATION=$JWT_EXPIRATION \
-              -e PORTONE_SECRET=$PORTONE_SECRET \
+              -e PORTONE_WEBHOOK_SECRET=$PORTONE_WEBHOOK_SECRET \
               -e PORTONE_STORE_ID=$PORTONE_STORE_ID \
               -e PORTONE_CHANNEL_KEY=$PORTONE_CHANNEL_KEY \
               -e PORTONE_API_SECRET=$PORTONE_API_SECRET \
               $IMAGE_URI:$IMAGE_TAG
 
+            # Health Check
             sleep 30
             if ! docker ps --format '{{.Names}}' | grep -q "^payment-app$"; then
               echo "Container failed to start"
@@ -117,6 +121,7 @@ jobs:
               exit 1
             fi
 
+            # 이미지 정리
             docker image prune -af
 
             echo "✅ 배포 완료!"
@@ -130,7 +135,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
           JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
-          PORTONE_SECRET: ${{ secrets.PORTONE_SECRET }}
+          PORTONE_WEBHOOK_SECRET: ${{ secrets.PORTONE_WEBHOOK_SECRET }}
           PORTONE_STORE_ID: ${{ secrets.PORTONE_STORE_ID }}
           PORTONE_CHANNEL_KEY: ${{ secrets.PORTONE_CHANNEL_KEY }}
           PORTONE_API_SECRET: ${{ secrets.PORTONE_API_SECRET }}

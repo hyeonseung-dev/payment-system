@@ -72,6 +72,21 @@ public class Order extends BaseEntity {
     }
 
     /**
+     * 결제 완료 후 전체 결제취소로 주문을 취소 상태로 변경한다.
+     */
+    public void cancelPaidOrder() {
+        if (this.status == OrderStatus.CANCELED) {
+            return;
+        }
+
+        if (this.status != OrderStatus.COMPLETED) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        this.status = OrderStatus.CANCELED;
+    }
+
+    /**
      * 전액 환불된 주문을 취소 상태로 변경한다.
      */
     public void cancelByRefund() {

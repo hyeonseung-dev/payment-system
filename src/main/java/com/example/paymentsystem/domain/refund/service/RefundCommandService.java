@@ -4,6 +4,7 @@ import com.example.paymentsystem.domain.order.entity.OrderItem;
 import com.example.paymentsystem.domain.order.repository.OrderItemRepository;
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import com.example.paymentsystem.domain.payment.service.PaymentService;
+import com.example.paymentsystem.domain.point.service.PointService;
 import com.example.paymentsystem.domain.product.entity.Product;
 import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.domain.refund.dto.RefundItemRequest;
@@ -39,6 +40,7 @@ public class RefundCommandService {
     private final RefundService refundService;
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
+    private final PointService pointService;
 
     /**
      * 환불 요청을 REQUESTED 상태로 저장하고 환불 수량을 선점한다.
@@ -344,8 +346,12 @@ public class RefundCommandService {
             return;
         }
 
-        // 주문 때 사용했던 포인트 중 이번 환불에 해당하는 금액을 회원 잔액에 복구한다.
-        payment.getOrder().getMember().restoreUsePoint(pointRefundAmount.intValue());
+        // 주문 때 사용했던 포인트 중 이번 환불에 해당하는 금액을 회원 잔액에 복구하고 이력을 저장한다.
+        pointService.cancelUsePoint(
+                payment.getOrder().getMember().getId(),
+                payment.getId(),
+                pointRefundAmount.intValue()
+        );
         log.info("환불 사용 포인트 복구 완료: orderId={}, paymentId={}, pointRefundAmount={}",
                 payment.getOrder().getId(), payment.getId(), pointRefundAmount);
     }
@@ -360,8 +366,12 @@ public class RefundCommandService {
             return;
         }
 
-        // 포인트 잔액으로 회수 가능한 적립 포인트만 차감한다. 부족분은 PG 환불액에서 이미 차감했다.
-        payment.getOrder().getMember().cancelEarnPoint(pointCancelAmount.intValue());
+        // 포인트 잔액으로 회수 가능한 적립 포인트만 차감하고 이력을 저장한다. 부족분은 PG 환불액에서 이미 차감했다.
+        pointService.cancelEarnPoint(
+                payment.getOrder().getMember().getId(),
+                payment.getId(),
+                pointCancelAmount.intValue()
+        );
         log.info("환불 적립 포인트 회수 완료: orderId={}, paymentId={}, pointCancelAmount={}, deductionAmount={}",
                 payment.getOrder().getId(), payment.getId(), pointCancelAmount, earnedPointDeductionAmount);
     }

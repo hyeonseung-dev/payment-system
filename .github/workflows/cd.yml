@@ -58,7 +58,7 @@ jobs:
           SHORT_SHA=${{ steps.vars.outputs.short_sha }}
           IMAGE_URI=${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPOSITORY }}
 
-          docker build -t $IMAGE_URI:$SHORT_SHA .
+          docker build --platform linux/arm64 -t $IMAGE_URI:$SHORT_SHA .
           docker push $IMAGE_URI:$SHORT_SHA
 
           echo "✅ Pushed: $IMAGE_URI:$SHORT_SHA"

@@ -66,4 +66,19 @@ public class Order extends BaseEntity {
 
         this.status = OrderStatus.CANCELED;
     }
+
+    /**
+     * 전액 환불된 주문을 취소 상태로 변경한다.
+     */
+    public void cancelByRefund() {
+        if (this.status == OrderStatus.CANCELED) {
+            return;
+        }
+
+        if (this.status != OrderStatus.COMPLETED) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        this.status = OrderStatus.CANCELED;
+    }
 }

@@ -19,3 +19,9 @@ jwt:
   secret:
     key: ${JWT_SECRET_KEY}
   expiration: ${JWT_EXPIRATION}
+
+portone:
+  secret: ${PORTONE_SECRET}
+  store-id: ${PORTONE_STORE_ID}
+  channel-key: ${PORTONE_CHANNEL_KEY}
+  api-secret: ${PORTONE_API_SECRET}

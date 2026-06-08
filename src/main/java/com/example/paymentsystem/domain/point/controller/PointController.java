@@ -32,6 +32,7 @@ public class PointController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+
         PointHistoryPageResponse response =
                 pointService.getPointHistories(memberId, page, size);
 

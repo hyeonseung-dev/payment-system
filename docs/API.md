@@ -39,8 +39,6 @@ http://localhost:8080
 }
 ```
 
-> 예외: 현재 포인트 API는 `ApiResponse`로 감싸지 않고 DTO를 직접 반환합니다.
-
 ### 공통 실패 응답 형식
 
 `BusinessException`, DTO 검증 실패, JSON 파싱 실패는 다음 형식으로 응답합니다.
@@ -60,7 +58,7 @@ JWT 인증이 필요한 API는 다음 헤더가 필요합니다.
 Authorization: Bearer {accessToken}
 ```
 
-현재 `SecurityConfig`에는 임시로 `/api/**` 허용 설정이 포함되어 있으나, `@AuthenticationPrincipal` 또는 `Authentication`으로 인증 회원 ID를 사용하는 API는 JWT 인증 필요 API로 표시했습니다.
+회원가입, 로그인, 상품 조회, PortOne 공개 설정 조회, 웹훅을 제외한 장바구니/주문/포인트/결제/환불 API는 JWT 인증이 필요합니다.
 
 ### 주요 ErrorCode
 
@@ -902,13 +900,13 @@ Authorization: Bearer {accessToken}
     "orderId": 1,
     "portonePaymentId": "pay_ab12cd34",
     "paymentStatus": "CANCELLED",
-    "orderStatus": "COMPLETED",
+    "orderStatus": "CANCELED",
     "message": "결제가 취소되었습니다."
   }
 }
 ```
 
-> 현재 구현은 Payment 상태만 `CANCELLED`로 변경합니다. 주문취소, 재고 복구, 포인트 복구/회수는 코드상 TODO로 남아 있습니다.
+결제 전체 취소가 완료되면 주문 상태는 `CANCELED`, 결제 상태는 `CANCELLED`로 변경되며 재고 복구, 사용 포인트 복구, 적립 포인트 회수 이력이 함께 처리됩니다.
 
 ### 상태코드
 

@@ -42,12 +42,23 @@ Server->>Server: DB portonePaymentId와 요청 portonePaymentId 비교
 Server->>PortOne: portonePaymentId로 결제 정보 조회
 PortOne-->>Server: 결제 상태, 결제 금액
 Server->>Server: 결제 상태/금액/멱등성 검증
-Server->>Server: Order ORDER_COMPLETED
+Server->>Server: Order COMPLETED
 Server->>Server: Payment PAID
 Server->>Server: 포인트 사용/적립 처리
 Server->>Server: PointHistory 저장
 Server->>Server: 장바구니 비우기
 Server-->>User: 결제 완료
+
+User->>Server: POST /api/payments/{paymentId}/cancel reason
+Server->>Server: 결제 소유권/상태 검증
+Server->>PortOne: 결제 전체 취소 요청
+PortOne-->>Server: 결제취소 결과
+Server->>Server: Order CANCELED
+Server->>Server: Payment CANCELLED
+Server->>Server: 재고 복구
+Server->>Server: 포인트 사용복구/적립회수
+Server->>Server: PointHistory 저장
+Server-->>User: 결제취소 완료
 
 PortOne->>Server: POST /api/webhooks/portone
 Server->>Server: 웹훅 서명 검증

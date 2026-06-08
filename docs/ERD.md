@@ -19,7 +19,6 @@
 ## Key Relations
 
 ```text
-members 1 : 1 points
 members 1 : 1 carts
 carts 1 : N cart_items
 products 1 : N cart_items
@@ -33,7 +32,7 @@ payments 1 : N refunds
 refunds 1 : N refund_items
 order_items 1 : N refund_items
 
-points 1 : N point_histories
+members 1 : N point_histories
 payments 1 : N point_histories
 
 payments 1 : N webhook_events

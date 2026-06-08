@@ -42,6 +42,7 @@ public enum ErrorCode {
     // ── Order ───────────────────────────────────────────────
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND,            "ORDER_001", "주문을 찾을 수 없습니다."),
     INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST,     "ORDER_002", "유효하지 않은 주문 상태 변경입니다."),
+    ORDER_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND,       "ORDER_003", "주문 상품을 찾을 수 없습니다."),
 
     // ── Point ───────────────────────────────────────────────
     POINT_NOT_FOUND(HttpStatus.NOT_FOUND,            "POINT_001", "포인트 정보를 찾을 수 없습니다."),
@@ -66,7 +67,8 @@ public enum ErrorCode {
 
     // ── Webhook ─────────────────────────────────────────────
     INVALID_WEBHOOK_SIGNATURE(HttpStatus.UNAUTHORIZED, "WEBHOOK_001", "웹훅 서명이 유효하지 않습니다."),
-    WEBHOOK_PAYMENT_ID_MISSING(HttpStatus.BAD_REQUEST, "WEBHOOK_002", "portonePaymentId를 가져올 수 없습니다.");
+    WEBHOOK_PAYMENT_ID_MISSING(HttpStatus.BAD_REQUEST, "WEBHOOK_002", "portonePaymentId를 가져올 수 없습니다."),
+    WEBHOOK_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "WEBHOOK_003", "웹훅 이벤트를 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

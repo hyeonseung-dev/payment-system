@@ -343,7 +343,6 @@ class OrderServiceTest {
         when(order.getOrderNumber()).thenReturn("ORD-20260605-000001");
         when(order.getStatus()).thenReturn(PAYMENT_PENDING);
         when(order.getTotalAmount()).thenReturn(30_000);
-        when(order.getUsePointAmountSnapshot()).thenReturn(5_000);
         when(order.getCreatedAt()).thenReturn(LocalDateTime.of(2026, 6, 5, 16, 30));
 
         // 주문 상품을 주문 ID 기준으로 묶기 위해 OrderItem에서 Order를 꺼낼 수 있어야 한다.
@@ -540,6 +539,7 @@ class OrderServiceTest {
         // 주문 상세 응답에 필요한 결제 정보를 준비한다.
         when(payment.getStatus()).thenReturn(PaymentStatus.READY);
         when(payment.getEarnedPointAmount()).thenReturn(0L);
+        when(payment.getPgAmount()).thenReturn(25000L);
 
         // 주문 ID와 회원 ID가 모두 일치하는 주문만 조회된다.
         when(orderRepository.findByIdAndMember_Id(orderId, memberId))
@@ -560,7 +560,7 @@ class OrderServiceTest {
         assertThat(response.status()).isEqualTo(PAYMENT_PENDING);
         assertThat(response.totalAmount()).isEqualTo(30_000);
         assertThat(response.pointAmount()).isEqualTo(5_000);
-        assertThat(response.pgAmount()).isEqualTo(25_000);
+        assertThat(response.pgAmount()).isEqualTo(25_000L);
         assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.READY);
         assertThat(response.earnedPointAmount()).isEqualTo(0L);
         assertThat(response.items()).hasSize(1);
@@ -631,6 +631,129 @@ class OrderServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(ErrorCode.PAYMENT_NOT_FOUND.getMessage());
     }
+    @Test
+    void 결제대기_주문_취소에_성공한다() {
+        // given
+        Long orderId = 1L;
+
+        Member member = createMemberWithPoint(0);
+        Product product = createProduct(productId, "아이폰 케이스", 15_000, 8);
+
+        Order order = Order.createPending(member, "ORD-20260608-000001", 30_000, 5_000);
+        setId(order, orderId);
+
+        OrderItem orderItem = OrderItem.createProductSnapshot(order, product, 2);
+        setId(orderItem, 1L);
+
+        Payment payment = Payment.createReady(order, "pay_12345678", 30_000L, 25_000L, 0L);
+        setId(payment, 1L);
+
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.of(order));
+        when(paymentRepository.findByOrder_Id(orderId))
+                .thenReturn(Optional.of(payment));
+        when(orderItemRepository.findAllByOrder_IdOrderByIdAsc(orderId))
+                .thenReturn(List.of(orderItem));
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.of(product));
+
+        // when
+        OrderCancelResponse response = orderService.cancelPendingOrder(memberId, orderId);
+
+        // then
+        assertThat(response.orderId()).isEqualTo(orderId);
+        assertThat(response.orderNumber()).isEqualTo("ORD-20260608-000001");
+        assertThat(response.orderStatus().name()).isEqualTo("CANCELED");
+        assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.FAILED);
+
+        // 주문 취소 시 선차감했던 재고가 복구되어야 한다.
+        assertThat(product.getStockQuantity()).isEqualTo(10);
+
+        // 주문 생성 시 사용했던 포인트도 복구되어야 한다.
+        assertThat(member.getPointBalance()).isEqualTo(5_000);
+    }
+
+    @Test
+    void 주문_취소_시_인증_정보가_없으면_예외가_발생한다() {
+        // given
+        Long orderId = 1L;
+
+        // when & then
+        assertThatThrownBy(() -> orderService.cancelPendingOrder(null, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.UNAUTHORIZED.getMessage());
+
+        verify(orderRepository, never()).findByIdAndMember_Id(anyLong(), anyLong());
+        verify(paymentRepository, never()).findByOrder_Id(anyLong());
+    }
+
+    @Test
+    void 주문_취소_시_주문이_없거나_내_주문이_아니면_예외가_발생한다() {
+        // given
+        Long orderId = 1L;
+
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> orderService.cancelPendingOrder(memberId, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.ORDER_NOT_FOUND.getMessage());
+
+        verify(paymentRepository, never()).findByOrder_Id(anyLong());
+        verify(orderItemRepository, never()).findAllByOrder_IdOrderByIdAsc(anyLong());
+    }
+
+    @Test
+    void 주문_취소_시_결제_정보가_없으면_예외가_발생한다() {
+        // given
+        Long orderId = 1L;
+
+        Member member = createMemberWithPoint(0);
+        Order order = Order.createPending(member, "ORD-20260608-000001", 30_000, 0);
+        setId(order, orderId);
+
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.of(order));
+        when(paymentRepository.findByOrder_Id(orderId))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> orderService.cancelPendingOrder(memberId, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.PAYMENT_NOT_FOUND.getMessage());
+
+        verify(orderItemRepository, never()).findAllByOrder_IdOrderByIdAsc(anyLong());
+    }
+
+    @Test
+    void 결제대기_상태가_아닌_주문은_취소할_수_없다() {
+        // given
+        Long orderId = 1L;
+
+        Member member = createMemberWithPoint(0);
+        Order order = Order.createPending(member, "ORD-20260608-000001", 30_000, 0);
+        setId(order, orderId);
+
+        // 결제 완료 상태로 변경해서 취소 불가능 상태를 만든다.
+        order.completePayment(0);
+
+        Payment payment = Payment.createReady(order, "pay_12345678", 30_000L, 30_000L, 0L);
+        setId(payment, 1L);
+
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.of(order));
+        when(paymentRepository.findByOrder_Id(orderId))
+                .thenReturn(Optional.of(payment));
+
+        // when & then
+        assertThatThrownBy(() -> orderService.cancelPendingOrder(memberId, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.INVALID_ORDER_STATUS.getMessage());
+
+        verify(orderItemRepository, never()).findAllByOrder_IdOrderByIdAsc(anyLong());
+    }
+
 
     private Product createProduct(Long id, String name, int price, int stockQuantity) {
         // 테스트용 상품을 만든다.

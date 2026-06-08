@@ -1,15 +1,24 @@
 package com.example.paymentsystem.domain.payment.service;
 
 import com.example.paymentsystem.domain.cart.service.CartService;
+import com.example.paymentsystem.domain.order.entity.OrderItem;
+import com.example.paymentsystem.domain.order.repository.OrderItemRepository;
 import com.example.paymentsystem.domain.payment.dto.PaymentCancelResponse;
 import com.example.paymentsystem.domain.payment.dto.PaymentConfirmResponse;
 import com.example.paymentsystem.domain.payment.entity.Payment;
+import com.example.paymentsystem.domain.payment.entity.PaymentStatus;
+import com.example.paymentsystem.domain.point.service.PointService;
+import com.example.paymentsystem.domain.product.entity.Product;
+import com.example.paymentsystem.domain.product.repository.ProductRepository;
+import com.example.paymentsystem.global.error.BusinessException;
+import com.example.paymentsystem.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 결제 확정과 실패 시 여러 도메인의 DB 상태 변경을 묶어 처리하는 서비스이다.
@@ -26,6 +35,9 @@ public class PaymentCommandService {
 
     private final PaymentService paymentService;
     private final CartService cartService;
+    private final OrderItemRepository orderItemRepository;
+    private final ProductRepository productRepository;
+    private final PointService pointService;
 
     /**
      * 결제 실패에 따른 내부 상태 변경을 처리한다.
@@ -41,18 +53,33 @@ public class PaymentCommandService {
         log.warn("결제 실패 처리 시작: orderId={}, paymentId={}, paymentStatus={}, orderStatus={}",
                 orderId, payment.getId(), payment.getStatus(), payment.getOrder().getStatus());
 
+        if (payment.getStatus() == PaymentStatus.FAILED) {
+            log.warn("이미 실패 처리된 결제 요청 무시: orderId={}, paymentId={}", orderId, payment.getId());
+            return;
+        }
+
+        if (!payment.isReady()) {
+            log.warn("결제 실패 처리 불가능 상태: orderId={}, paymentId={}, paymentStatus={}",
+                    orderId, payment.getId(), payment.getStatus());
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+
+        // 주문취소
+        payment.getOrder().cancel();
+        log.warn("Order 취소 처리 완료: orderId={}, paymentId={}", orderId, payment.getId());
+
+        // 재고복구
+        List<OrderItem> orderItems = orderItemRepository.findAllByOrder_IdOrderByIdAsc(orderId);
+        restoreStock(orderItems);
+        log.warn("결제 실패 재고 복구 완료: orderId={}, paymentId={}", orderId, payment.getId());
+
+        // 사용 포인트 복구
+        restoreUsedPoint(payment);
+        log.warn("결제 실패 사용 포인트 복구 완료: orderId={}, paymentId={}", orderId, payment.getId());
+
         // Payment 실패
         paymentService.failPayment(payment);
         log.warn("Payment 실패 처리 완료: orderId={}, paymentId={}", orderId, payment.getId());
-
-        // 주문취소
-        // TODO: OrderService 구현 후 주문 취소 처리 연결
-
-        // 재고복구
-        // TODO: OrderItem 조회와 Product 재고 복구 처리 연결
-
-        // 사용 포인트 복구
-        // TODO: 주문 생성 또는 결제 확정 시 포인트 사용 정책 확정 후 복구 처리 연결
     }
 
     /**
@@ -79,7 +106,9 @@ public class PaymentCommandService {
         log.info("Payment 완료 처리 완료: orderId={}, paymentId={}", orderId, payment.getId());
 
         // 포인트 적립
-        // TODO: PointService 구현 후 pgAmount 기준 포인트 적립 처리 연결
+        earnPoint(payment);
+        log.info("결제 포인트 적립 처리 완료: orderId={}, paymentId={}, earnedPointAmount={}",
+                orderId, payment.getId(), payment.getEarnedPointAmount());
 
         // 주문에 사용된 장바구니 항목 삭제
         cartService.deleteOrderedCartItemsByOrderId(orderId);
@@ -106,19 +135,39 @@ public class PaymentCommandService {
         log.info("결제취소 내부 처리 시작: orderId={}, paymentId={}, paymentStatus={}, orderStatus={}",
                 payment.getOrder().getId(), payment.getId(), payment.getStatus(), payment.getOrder().getStatus());
 
+        if (payment.getStatus() == PaymentStatus.CANCELLED) {
+            log.info("이미 취소 처리된 결제 요청 무시: orderId={}, paymentId={}",
+                    payment.getOrder().getId(), payment.getId());
+            return PaymentCancelResponse.of(payment, PAYMENT_CANCELLED_MESSAGE);
+        }
+
+        if (!payment.isPaid()) {
+            log.warn("결제취소 내부 처리 불가능 상태: orderId={}, paymentId={}, paymentStatus={}",
+                    payment.getOrder().getId(), payment.getId(), payment.getStatus());
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+
+        // 주문취소
+        payment.getOrder().cancelPaidOrder();
+        log.info("Order 결제취소 처리 완료: orderId={}, paymentId={}",
+                payment.getOrder().getId(), payment.getId());
+
+        // 재고복구
+        List<OrderItem> orderItems = orderItemRepository.findAllByOrder_IdOrderByIdAsc(payment.getOrder().getId());
+        restoreStock(orderItems);
+        log.info("결제취소 재고 복구 완료: orderId={}, paymentId={}",
+                payment.getOrder().getId(), payment.getId());
+
+        // 포인트 복구/회수
+        restoreUsedPoint(payment);
+        cancelEarnedPoint(payment);
+        log.info("결제취소 포인트 복구/회수 완료: orderId={}, paymentId={}",
+                payment.getOrder().getId(), payment.getId());
+
         // Payment 취소
         paymentService.cancelPayment(payment);
         log.info("Payment 취소 처리 완료: orderId={}, paymentId={}",
                 payment.getOrder().getId(), payment.getId());
-
-        // 주문취소
-        // TODO: OrderService 구현 후 주문 취소 처리 연결
-
-        // 재고복구
-        // TODO: OrderItem 조회와 Product 재고 복구 처리 연결
-
-        // 포인트 복구/회수
-        // TODO: PointService 구현 후 사용 포인트 복구와 적립 포인트 회수 처리 연결
 
         Payment cancelledPayment = paymentService.findByIdWithOrderAndMember(paymentId);
         PaymentCancelResponse response = PaymentCancelResponse.of(
@@ -128,5 +177,53 @@ public class PaymentCommandService {
         log.info("결제취소 내부 처리 완료: orderId={}, paymentId={}, paymentStatus={}",
                 response.orderId(), response.paymentId(), response.paymentStatus());
         return response;
+    }
+
+    private void restoreStock(List<OrderItem> orderItems) {
+        for (OrderItem orderItem : orderItems) {
+            Product product = productRepository.findByIdWithLock(orderItem.getProductId()).orElseThrow(
+                    () -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+            );
+            product.increaseStock(orderItem.getQuantity());
+        }
+    }
+
+    private void earnPoint(Payment payment) {
+        Long earnedPointAmount = payment.getEarnedPointAmount();
+        if (earnedPointAmount <= 0) {
+            return;
+        }
+
+        pointService.earnPoint(
+                payment.getOrder().getMember().getId(),
+                payment.getId(),
+                earnedPointAmount.intValue()
+        );
+    }
+
+    private void restoreUsedPoint(Payment payment) {
+        int usePointAmount = payment.getOrder().getUsePointAmountSnapshot();
+        if (usePointAmount <= 0) {
+            return;
+        }
+
+        pointService.cancelUsePoint(
+                payment.getOrder().getMember().getId(),
+                payment.getId(),
+                usePointAmount
+        );
+    }
+
+    private void cancelEarnedPoint(Payment payment) {
+        Long earnedPointAmount = payment.getEarnedPointAmount();
+        if (earnedPointAmount <= 0) {
+            return;
+        }
+
+        pointService.cancelEarnPoint(
+                payment.getOrder().getMember().getId(),
+                payment.getId(),
+                earnedPointAmount.intValue()
+        );
     }
 }

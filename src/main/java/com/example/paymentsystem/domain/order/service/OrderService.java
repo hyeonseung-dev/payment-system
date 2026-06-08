@@ -341,11 +341,6 @@ public class OrderService {
         );
     }
 
-    private void deleteOrderedCartItems(List<CartItem> cartItems) {
-        // 주문에 사용된 장바구니 상품은 다시 주문되지 않도록 삭제한다.
-        cartItemRepository.deleteAll(cartItems);
-    }
-
     private void validateCancelable(Order order, Payment payment) {
         // 결제대기 주문만 최소할 수 있다.
         if (order.getStatus() != OrderStatus.PAYMENT_PENDING) {

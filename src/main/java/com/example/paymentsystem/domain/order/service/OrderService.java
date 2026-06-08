@@ -7,10 +7,12 @@ import com.example.paymentsystem.domain.member.repository.MemberRepository;
 import com.example.paymentsystem.domain.order.dto.*;
 import com.example.paymentsystem.domain.order.entity.Order;
 import com.example.paymentsystem.domain.order.entity.OrderItem;
+import com.example.paymentsystem.domain.order.enums.OrderStatus;
 import com.example.paymentsystem.domain.order.repository.OrderItemRepository;
 import com.example.paymentsystem.domain.order.repository.OrderRepository;
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import com.example.paymentsystem.domain.payment.repository.PaymentRepository;
+import com.example.paymentsystem.domain.point.service.PointService;
 import com.example.paymentsystem.domain.product.entity.Product;
 import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.global.error.BusinessException;
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderService {
 
+    private static final int POINT_EARN_RATE_DIVISOR = 100;
+
     private final CartItemRepository cartItemRepository;
     private final OrderValidator orderValidator;
     private final MemberRepository memberRepository;
@@ -39,6 +43,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final PaymentRepository paymentRepository;
     private final ProductRepository productRepository;
+    private final PointService pointService;
 
     @Transactional(readOnly = true)
     public OrderPreviewResponse previewOrder(Long memberId, OrderPreviewRequest request) {
@@ -67,10 +72,9 @@ public class OrderService {
         // 주문 총 금액을 계산
         int totalAmount = calculateTotalAmount(cartItems);
 
-        // TODO 포인트 도메인 구현 후 PointService를 통해 포인트 차감과 PointHistory저장을 함께 처리하도록 변경 예정
-        // 포인트 사용 가능 여부를 검증하고 주문 생성 시점에 선차감한다.
+        // 포인트 사용 가능 여부를 먼저 검증한다.
         int pointAmount = request.getUsePointAmount();
-        usePoint(member, totalAmount, pointAmount);
+        validateUsePoint(member, totalAmount, pointAmount);
 
         // PG사에 실제 결제할 금액을 계산
         int pgAmount = calculatePgAmount(totalAmount, pointAmount);
@@ -86,6 +90,9 @@ public class OrderService {
 
         // PortOne 결제에 사용할 결제대기 Payment를 생성
         Payment payment = createReadyPayment(order, totalAmount, pgAmount);
+
+        // Payment ID가 생성된 뒤 포인트 차감과 PointHistory 저장을 함께 처리한다.
+        usePoint(memberId, payment.getId(), pointAmount);
 
         return CreateOrderResponse.of(order, payment, pointAmount);
     }
@@ -107,8 +114,8 @@ public class OrderService {
         // 사용할 포인트를 꺼내 요청에 없으면 0
         int pointAmount = request.getUsePointAmount();
 
-        // 포인트 사용 가능 여부를 검증하고 선차감
-        usePoint(member, totalAmount, pointAmount);
+        // 포인트 사용 가능 여부를 먼저 검증한다.
+        validateUsePoint(member, totalAmount, pointAmount);
 
         // PG사에 실제 결제할 금액을 계산
         int pgAmount = calculatePgAmount(totalAmount, pointAmount);
@@ -125,6 +132,9 @@ public class OrderService {
 
         // PortOne 결제에 사용할 결제대기 Payment 생성
         Payment payment = createReadyPayment(order, totalAmount, pgAmount);
+
+        // Payment ID가 생성된 뒤 포인트 차감과 PointHistory 저장을 함께 처리한다.
+        usePoint(memberId, payment.getId(), pointAmount);
 
         return CreateOrderResponse.of(order, payment, pointAmount);
     }
@@ -209,20 +219,62 @@ public class OrderService {
         return OrderDetailResponse.of(order, orderItems, payment);
     }
 
-    private void usePoint(Member member, int totalAmount, int pointAmount) {
+    @Transactional
+    public OrderCancelResponse cancelPendingOrder(Long memberId, Long orderId) {
+        // JWT 인증 정보가 없으면 주문을 취소할 없다.
+        if (memberId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        // 주문이 없거나 다른 회원의 주문이면 모두 ORDER_NOT_FOUND로 처리
+        Order order = orderRepository.findByIdAndMember_Id(orderId, memberId).orElseThrow(
+                () -> new BusinessException(ErrorCode.ORDER_NOT_FOUND)
+        );
+
+        // 주문에 연결된 결제 정보를 조회한다.
+        Payment payment = paymentRepository.findByOrder_Id(orderId).orElseThrow(
+                () -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND)
+        );
+
+        // 결제대기 주문과 결제대기 Payment만 취소할 수 있다.
+        validateCancelable(order, payment);
+
+        // 주문 상품 목록을 조회한다.
+        List<OrderItem> orderItems = orderItemRepository.findAllByOrder_IdOrderByIdAsc(orderId);
+
+        // 주문 생성 때 선차감한 재고를 복구
+        restoreStock(orderItems);
+
+        // 주문 생성 때 선처감한 포인트를 복구
+        restorePoint(memberId, order, payment);
+
+        // 주문 상태를 CANCELED로 변경
+        // 동시에 두 취소 요청이 들어오면 Order의 @Version으로 하나만 성공하면 나머지는 롤백
+        order.cancel();
+
+        // 결제대기 Payment는 실제 결제가 진행되지 않았으므로 FAILED로 변경
+        payment.fail();
+
+        return OrderCancelResponse.of(order, payment);
+    }
+
+    private void validateUsePoint(Member member, int totalAmount, int pointAmount) {
         // 주문 금액보다 많은 포인트는 사용할 수 없다.
         if (pointAmount > totalAmount) {
             throw new BusinessException(ErrorCode.INVALID_POINT_AMOUNT);
         }
 
-        // TODO 포인트 도메인 구현 후 member,usePoint 직접 호출 대신 PointService.usePoint(..)로 교체 예정
-        // TODO 포인트 사용 이력을 같은 트랜잭션에서 저장해야 한다.
-        // TODO OrderService가 PointService에 직접 의존하지 않도록 추후 OrderFacade에서 주문/포인트 흐름을 조합할 예정
-
-        // 포인트를 사용하는 경우에만 회원 포인트를 선차감한다.
-        if (pointAmount > 0) {
-            member.usePoint(pointAmount);
+        if (member.getPointBalance() < pointAmount) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_POINT);
         }
+    }
+
+    private void usePoint(Long memberId, Long paymentId, int pointAmount) {
+        if (pointAmount <= 0) {
+            return;
+        }
+
+        pointService.usePoint(memberId, paymentId, pointAmount);
     }
 
     private void decreaseStock(List<CartItem> cartItems) {
@@ -268,9 +320,7 @@ public class OrderService {
         // PortOne 결제창에서 사용할 결제 식별자를 생성
         String portonePaymentId = createPortonePaymentId();
 
-        // todo 포인트 적립 예정 로직 구현 후 수정 예정
-        // 아직 결제 성공 전이므로 적립 예정 포인트는 0으로 둔다.
-        long earnedPointAmount = 0L;
+        long earnedPointAmount = calculateEarnedPointAmount(pgAmount);
 
         Payment payment = Payment.createReady(
                 order,
@@ -291,6 +341,14 @@ public class OrderService {
                 .substring(0, 8);
     }
 
+    private long calculateEarnedPointAmount(int pgAmount) {
+        if (pgAmount <= 0) {
+            return 0L;
+        }
+
+        return pgAmount / POINT_EARN_RATE_DIVISOR;
+    }
+
     private Member findMemberWithLock(Long memberId) {
         if (memberId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
@@ -299,6 +357,39 @@ public class OrderService {
         return memberRepository.findByIdWithLock(memberId).orElseThrow(
                 () -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND)
         );
+    }
+
+    private void validateCancelable(Order order, Payment payment) {
+        // 결제대기 주문만 최소할 수 있다.
+        if (order.getStatus() != OrderStatus.PAYMENT_PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        // 결제 정보도 READY 상태여야 결제대기 주문 취소 가능
+        if (!payment.isReady()) {
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_STATUS);
+        }
+    }
+
+    private void restoreStock(List<OrderItem> orderItems) {
+        for (OrderItem orderItem : orderItems) {
+            // OrderItem에는 Product 연관관계가 없으니 productId로 상품을 다시 조회
+            Product product = productRepository.findById(orderItem.getProductId()).orElseThrow(
+                    () -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND)
+            );
+
+            // 주문 생성 시 선차감했던 수량만큼 재고를 복구
+            product.increaseStock(orderItem.getQuantity());
+        }
+    }
+
+    private void restorePoint(Long memberId, Order order, Payment payment) {
+        int pointAmount = order.getUsePointAmountSnapshot();
+
+        // 포인트를 사용한 주문일 때만 포인트를 복구
+        if (pointAmount > 0) {
+            pointService.cancelUsePoint(memberId, payment.getId(), pointAmount);
+        }
     }
 
 }

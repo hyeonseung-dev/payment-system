@@ -13,6 +13,7 @@ import com.example.paymentsystem.domain.order.repository.OrderRepository;
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import com.example.paymentsystem.domain.payment.entity.PaymentStatus;
 import com.example.paymentsystem.domain.payment.repository.PaymentRepository;
+import com.example.paymentsystem.domain.point.service.PointService;
 import com.example.paymentsystem.domain.product.entity.Product;
 import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.global.error.BusinessException;
@@ -62,6 +63,8 @@ class OrderServiceTest {
     private PaymentRepository paymentRepository;
     @Mock
     private ProductRepository productRepository;
+    @Mock
+    private PointService pointService;
 
     Long memberId = 1L;
     Long cartItemId = 1L;
@@ -184,6 +187,7 @@ class OrderServiceTest {
         when(order.getTotalAmount()).thenReturn(30000);
 
         when(payment.getPortonePaymentId()).thenReturn("pay_1234567890");
+        when(payment.getId()).thenReturn(1L);
         when(payment.getPgAmount()).thenReturn(25000L);
 
         // when
@@ -197,13 +201,13 @@ class OrderServiceTest {
         assertThat(response.pointAmount()).isEqualTo(5_000);
         assertThat(response.pgAmount()).isEqualTo(25_000);
 
-        assertThat(member.getPointBalance()).isEqualTo(5_000);
         assertThat(product.getStockQuantity()).isEqualTo(8);
 
         verify(orderValidator).validateCartItems(List.of(cartItem), cartItemIds);
         verify(orderValidator).validateStock(List.of(cartItem));
         verify(orderItemRepository).saveAll(anyList());
         verify(paymentRepository).save(any(Payment.class));
+        verify(pointService).usePoint(memberId, 1L, 5_000);
     }
 
     @Test
@@ -281,6 +285,7 @@ class OrderServiceTest {
 
         // 응답 DTO 생성에 필요한 결제 값이다.
         when(payment.getPortonePaymentId()).thenReturn("pay_12345678");
+        when(payment.getId()).thenReturn(1L);
         when(payment.getPgAmount()).thenReturn(25_000L);
 
         // when
@@ -295,8 +300,7 @@ class OrderServiceTest {
         assertThat(response.pointAmount()).isEqualTo(5_000);
         assertThat(response.pgAmount()).isEqualTo(25_000);
 
-        // 포인트와 재고가 실제로 차감됐는지 확인한다.
-        assertThat(member.getPointBalance()).isEqualTo(5_000);
+        // 재고가 실제로 차감됐는지 확인한다. 포인트 차감과 이력 저장은 PointService가 담당한다.
         assertThat(product.getStockQuantity()).isEqualTo(8);
 
         // 상품 바로 주문은 장바구니를 사용하지 않는다.
@@ -305,6 +309,7 @@ class OrderServiceTest {
         // 주문 상품 스냅샷과 결제대기 Payment가 저장됐는지 확인한다.
         verify(orderItemRepository).save(any(OrderItem.class));
         verify(paymentRepository).save(any(Payment.class));
+        verify(pointService).usePoint(memberId, 1L, 5_000);
     }
 
     @Test
@@ -631,6 +636,129 @@ class OrderServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(ErrorCode.PAYMENT_NOT_FOUND.getMessage());
     }
+    @Test
+    void 결제대기_주문_취소에_성공한다() {
+        // given
+        Long orderId = 1L;
+
+        Member member = createMemberWithPoint(0);
+        Product product = createProduct(productId, "아이폰 케이스", 15_000, 8);
+
+        Order order = Order.createPending(member, "ORD-20260608-000001", 30_000, 5_000);
+        setId(order, orderId);
+
+        OrderItem orderItem = OrderItem.createProductSnapshot(order, product, 2);
+        setId(orderItem, 1L);
+
+        Payment payment = Payment.createReady(order, "pay_12345678", 30_000L, 25_000L, 0L);
+        setId(payment, 1L);
+
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.of(order));
+        when(paymentRepository.findByOrder_Id(orderId))
+                .thenReturn(Optional.of(payment));
+        when(orderItemRepository.findAllByOrder_IdOrderByIdAsc(orderId))
+                .thenReturn(List.of(orderItem));
+        when(productRepository.findById(productId))
+                .thenReturn(Optional.of(product));
+
+        // when
+        OrderCancelResponse response = orderService.cancelPendingOrder(memberId, orderId);
+
+        // then
+        assertThat(response.orderId()).isEqualTo(orderId);
+        assertThat(response.orderNumber()).isEqualTo("ORD-20260608-000001");
+        assertThat(response.orderStatus().name()).isEqualTo("CANCELED");
+        assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.FAILED);
+
+        // 주문 취소 시 선차감했던 재고가 복구되어야 한다.
+        assertThat(product.getStockQuantity()).isEqualTo(10);
+
+        // 주문 생성 시 사용했던 포인트도 PointHistory와 함께 복구되어야 한다.
+        verify(pointService).cancelUsePoint(memberId, payment.getId(), 5_000);
+    }
+
+    @Test
+    void 주문_취소_시_인증_정보가_없으면_예외가_발생한다() {
+        // given
+        Long orderId = 1L;
+
+        // when & then
+        assertThatThrownBy(() -> orderService.cancelPendingOrder(null, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.UNAUTHORIZED.getMessage());
+
+        verify(orderRepository, never()).findByIdAndMember_Id(anyLong(), anyLong());
+        verify(paymentRepository, never()).findByOrder_Id(anyLong());
+    }
+
+    @Test
+    void 주문_취소_시_주문이_없거나_내_주문이_아니면_예외가_발생한다() {
+        // given
+        Long orderId = 1L;
+
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> orderService.cancelPendingOrder(memberId, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.ORDER_NOT_FOUND.getMessage());
+
+        verify(paymentRepository, never()).findByOrder_Id(anyLong());
+        verify(orderItemRepository, never()).findAllByOrder_IdOrderByIdAsc(anyLong());
+    }
+
+    @Test
+    void 주문_취소_시_결제_정보가_없으면_예외가_발생한다() {
+        // given
+        Long orderId = 1L;
+
+        Member member = createMemberWithPoint(0);
+        Order order = Order.createPending(member, "ORD-20260608-000001", 30_000, 0);
+        setId(order, orderId);
+
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.of(order));
+        when(paymentRepository.findByOrder_Id(orderId))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> orderService.cancelPendingOrder(memberId, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.PAYMENT_NOT_FOUND.getMessage());
+
+        verify(orderItemRepository, never()).findAllByOrder_IdOrderByIdAsc(anyLong());
+    }
+
+    @Test
+    void 결제대기_상태가_아닌_주문은_취소할_수_없다() {
+        // given
+        Long orderId = 1L;
+
+        Member member = createMemberWithPoint(0);
+        Order order = Order.createPending(member, "ORD-20260608-000001", 30_000, 0);
+        setId(order, orderId);
+
+        // 결제 완료 상태로 변경해서 취소 불가능 상태를 만든다.
+        order.completePayment(0);
+
+        Payment payment = Payment.createReady(order, "pay_12345678", 30_000L, 30_000L, 0L);
+        setId(payment, 1L);
+
+        when(orderRepository.findByIdAndMember_Id(orderId, memberId))
+                .thenReturn(Optional.of(order));
+        when(paymentRepository.findByOrder_Id(orderId))
+                .thenReturn(Optional.of(payment));
+
+        // when & then
+        assertThatThrownBy(() -> orderService.cancelPendingOrder(memberId, orderId))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ErrorCode.INVALID_ORDER_STATUS.getMessage());
+
+        verify(orderItemRepository, never()).findAllByOrder_IdOrderByIdAsc(anyLong());
+    }
+
 
     private Product createProduct(Long id, String name, int price, int stockQuantity) {
         // 테스트용 상품을 만든다.

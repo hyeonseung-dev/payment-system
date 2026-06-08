@@ -6,18 +6,23 @@ import com.example.paymentsystem.global.common.BaseEntity;
 import com.example.paymentsystem.global.error.BusinessException;
 import com.example.paymentsystem.global.error.ErrorCode;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "orders")
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Order extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
@@ -61,6 +66,21 @@ public class Order extends BaseEntity {
     public void cancel() {
         // 결제대기 상태의 주문만 취소할 수 있다.
         if (this.status != OrderStatus.PAYMENT_PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
+        }
+
+        this.status = OrderStatus.CANCELED;
+    }
+
+    /**
+     * 결제 완료 후 전체 결제취소로 주문을 취소 상태로 변경한다.
+     */
+    public void cancelPaidOrder() {
+        if (this.status == OrderStatus.CANCELED) {
+            return;
+        }
+
+        if (this.status != OrderStatus.COMPLETED) {
             throw new BusinessException(ErrorCode.INVALID_ORDER_STATUS);
         }
 

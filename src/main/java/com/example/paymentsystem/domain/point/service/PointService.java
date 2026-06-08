@@ -147,7 +147,7 @@ public class PointService {
                         )
                 );
 
-        member.earnPoint(amount);
+        member.restoreUsePoint(amount);
 
         PointHistory history =
                 PointHistory.createUseCancelHistory(

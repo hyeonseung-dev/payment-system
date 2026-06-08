@@ -19,3 +19,9 @@ jwt:
   secret:
     key: ${JWT_SECRET_KEY}
   expiration: ${JWT_EXPIRATION}
+
+portone:
+  api-secret: ${PORTONE_API_SECRET}
+  store-id: ${PORTONE_STORE_ID}
+  channel-key: ${PORTONE_CHANNEL_KEY}
+  webhook-secret: ${PORTONE_WEBHOOK_SECRET}

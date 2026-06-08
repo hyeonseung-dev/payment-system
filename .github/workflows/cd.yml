@@ -80,7 +80,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_KEY }}
-          envs: AWS_ACCOUNT_ID,AWS_REGION,ECR_REPOSITORY,IMAGE_TAG,DB_HOST,DB_USERNAME,DB_PASSWORD,JWT_SECRET_KEY,JWT_EXPIRATION,PORTONE_SECRET
+          envs: AWS_ACCOUNT_ID,AWS_REGION,ECR_REPOSITORY,IMAGE_TAG,DB_HOST,DB_USERNAME,DB_PASSWORD,JWT_SECRET_KEY,JWT_EXPIRATION,PORTONE_SECRET,PORTONE_STORE_ID,PORTONE_CHANNEL_KEY,PORTONE_API_SECRET
           script: |
             echo "IMAGE_TAG: $IMAGE_TAG"
 
@@ -108,6 +108,9 @@ jobs:
               -e JWT_SECRET_KEY=$JWT_SECRET_KEY \
               -e JWT_EXPIRATION=$JWT_EXPIRATION \
               -e PORTONE_SECRET=$PORTONE_SECRET \
+              -e PORTONE_STORE_ID=$PORTONE_STORE_ID \
+              -e PORTONE_CHANNEL_KEY=$PORTONE_CHANNEL_KEY \
+              -e PORTONE_API_SECRET=$PORTONE_API_SECRET \
               $IMAGE_URI:$IMAGE_TAG
 
             # Health Check
@@ -133,3 +136,6 @@ jobs:
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
           JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
           PORTONE_SECRET: ${{ secrets.PORTONE_SECRET }}
+          PORTONE_STORE_ID: ${{ secrets.PORTONE_STORE_ID }}
+          PORTONE_CHANNEL_KEY: ${{ secrets.PORTONE_CHANNEL_KEY }}
+          PORTONE_API_SECRET: ${{ secrets.PORTONE_API_SECRET }}

@@ -138,7 +138,7 @@ public class OrderService {
         );
 
         // 주문에 연결된 결제 정보를 조회한다.
-        Payment payment = paymentRepository.findByOrderId(orderId).orElseThrow(
+        Payment payment = paymentRepository.findByOrder_Id(orderId).orElseThrow(
                 () -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND)
         );
 

@@ -9,6 +9,7 @@ import com.example.paymentsystem.domain.cart.repository.CartItemRepository;
 import com.example.paymentsystem.domain.cart.repository.CartRepository;
 import com.example.paymentsystem.domain.member.entity.Member;
 import com.example.paymentsystem.domain.member.repository.MemberRepository;
+import com.example.paymentsystem.domain.order.repository.OrderItemRepository;
 import com.example.paymentsystem.domain.product.entity.Product;
 import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.global.error.BusinessException;
@@ -27,6 +28,7 @@ public class CartService {
     private final CartRepository cartRepository;
     private final MemberRepository memberRepository;
     private final ProductRepository productRepository;
+    private final OrderItemRepository orderItemRepository;
 
     @Transactional(readOnly = true)
     public CartResponse findCartItems(Long memberId) {
@@ -109,5 +111,24 @@ public class CartService {
         if (deleted == 0) {
             throw new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND);
         }
+    }
+
+    /**
+     * 주문에 사용된 장바구니 상품만 삭제한다.
+     *
+     * <p>주문 생성 시에는 결제 실패 가능성이 있으므로 장바구니를 유지하고,
+     * 결제 성공이 확정된 뒤 OrderItem에 저장된 원본 cartItemId 기준으로 선택 항목만 삭제한다.
+     * 상품 바로 주문처럼 원본 CartItem이 없는 주문 상품은 삭제 대상에서 제외된다.</p>
+     *
+     * @param orderId 주문 ID
+     */
+    @Transactional
+    public void deleteOrderedCartItemsByOrderId(Long orderId) {
+        List<Long> cartItemIds = orderItemRepository.findCartItemIdsByOrderId(orderId);
+        if (cartItemIds.isEmpty()) {
+            return;
+        }
+
+        cartItemRepository.deleteByIdIn(cartItemIds);
     }
 }

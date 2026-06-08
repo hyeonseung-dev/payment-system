@@ -4,6 +4,7 @@ import com.example.paymentsystem.domain.member.repository.MemberRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 public class MemberDummyDataInitializer {
 
     private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @PostConstruct
     public void init() {
@@ -22,8 +24,8 @@ public class MemberDummyDataInitializer {
 
         memberRepository.save(
                 new Member(
-                        "test@test.com",
-                        "1234",
+                        "test@example.com",
+                        passwordEncoder.encode("test1234"),
                         "홍길동",
                         "01012345678",
                         5000

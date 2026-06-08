@@ -3,3 +3,11 @@ spring:
     name: payment-system
   profiles:
     default: local
+
+
+portone:
+   base-url: "https://api.portone.io"
+  api-secret: HtOlYlPOCEKYnGpE0O9Yt4c7tdKqGeySGieoMlnG42SLb16CayVpxAcBI1nsj98AjY1Aah6b0bhNlm9r
+  store-id: store-949b4de1-cec2-4979-8aea-825822ee700c
+  channel-key: channel-key-6f2b7c43-dca0-482a-87b4-701f3be13d81
+  webhook-secret: whsec_bzqHoQEjvgPeCLKX4jFaLDg6jY1VcigdhUek2O6YljY=

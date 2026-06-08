@@ -127,11 +127,12 @@ public class WebhookEvent extends BaseEntity {
     /**
      * 웹훅을 무시 상태로 변경한다.
      *
+     * @param failureReason 무시 사유
      * @param processedAt 무시 처리 시각
      */
-    public void ignore(LocalDateTime processedAt) {
+    public void ignore(String failureReason, LocalDateTime processedAt) {
         this.status = WebhookStatus.IGNORED;
         this.processedAt = processedAt;
-        this.failureReason = null;
+        this.failureReason = failureReason;
     }
 }

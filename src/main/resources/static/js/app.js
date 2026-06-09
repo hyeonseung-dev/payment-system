@@ -450,7 +450,7 @@ async function renderOrderPreview() {
           <div class="summary-row bold">
             <span>결제 금액</span><span id="pgTotal">${fmtPrice(preview.pgAmount)}원</span>
           </div>
-          <p class="earn-hint">결제 완료 시 약 <strong>${fmtPrice(Math.floor(preview.pgAmount * 0.1))}P</strong> 적립</p>
+          <p class="earn-hint" id="earnHint">결제 완료 시 약 <strong>${fmtPrice(Math.floor(preview.pgAmount / 100))}P</strong> 적립</p>
           <button class="btn-primary btn-block btn-pay" id="payBtn" onclick="App.startPay()">
             결제하기
           </button>
@@ -626,7 +626,7 @@ async function renderPoints(page = 0) {
       <div class="pt-balance-card">
         <p class="pt-label">보유 포인트</p>
         <p class="pt-amount">${fmtPrice(balance)}<span class="pt-unit">P</span></p>
-        <p class="pt-desc">결제 금액의 10%가 자동 적립됩니다.</p>
+        <p class="pt-desc">결제 금액의 1%가 자동 적립됩니다.</p>
       </div>
       <div class="section-hd"><h3>포인트 내역</h3></div>
       <div class="table-wrap">
@@ -781,7 +781,6 @@ async function doSignup(e) {
     await API.signup(f.email.value, f.password.value, f.name.value, f.phoneNumber.value);
     // 회원가입 성공 후 자동 로그인
     await API.login(f.email.value, f.password.value);
-    API.member.set({ email: f.email.value, name: f.name.value });
     toast('회원가입이 완료되었습니다.', 'success');
     updateHeader();
     go('/');
@@ -858,8 +857,10 @@ function updateDiscount(total) {
   const pg = Math.max(0, total - pt);
   const discEl = $id('ptDiscount');
   const pgEl   = $id('pgTotal');
+  const earnEl = $id('earnHint');
   if (discEl) discEl.textContent = `-${fmtPrice(pt)}원`;
   if (pgEl)   pgEl.textContent   = `${fmtPrice(pg)}원`;
+  if (earnEl) earnEl.innerHTML   = `결제 완료 시 약 <strong>${fmtPrice(Math.floor(pg / 100))}P</strong> 적립`;
 }
 
 function useAllPt(balance) {
@@ -938,7 +939,7 @@ async function renderDirectPreview() {
           <div class="summary-row bold">
             <span>결제 금액</span><span id="pgTotal">${fmtPrice(totalAmount)}원</span>
           </div>
-          <p class="earn-hint">결제 완료 시 약 <strong>${fmtPrice(Math.floor(totalAmount * 0.1))}P</strong> 적립</p>
+          <p class="earn-hint" id="earnHint">결제 완료 시 약 <strong>${fmtPrice(Math.floor(totalAmount / 100))}P</strong> 적립</p>
           <button class="btn-primary btn-block btn-pay" id="payBtn" onclick="App.startDirectPay()">
             결제하기
           </button>
@@ -1022,7 +1023,7 @@ async function runPortone(order) {
       customer: {
         email:       m?.email       || undefined,
         fullName:    m?.name        || undefined,
-        phoneNumber: m?.phoneNumber || undefined,
+        phoneNumber: m?.phoneNumber ? m.phoneNumber.replace(/\D/g, '') : undefined,
       },
     });
   } catch (ex) {

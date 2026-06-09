@@ -13,6 +13,9 @@ import com.example.paymentsystem.domain.order.repository.OrderRepository;
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import com.example.paymentsystem.domain.payment.repository.PaymentRepository;
 import com.example.paymentsystem.domain.point.service.PointService;
+import com.example.paymentsystem.domain.refund.entity.Refund;
+import com.example.paymentsystem.domain.refund.entity.RefundStatus;
+import com.example.paymentsystem.domain.refund.repository.RefundRepository;
 import com.example.paymentsystem.domain.product.entity.Product;
 import com.example.paymentsystem.domain.product.repository.ProductRepository;
 import com.example.paymentsystem.global.error.BusinessException;
@@ -44,6 +47,7 @@ public class OrderService {
     private final PaymentRepository paymentRepository;
     private final ProductRepository productRepository;
     private final PointService pointService;
+    private final RefundRepository refundRepository;
 
     @Transactional(readOnly = true)
     public OrderPreviewResponse previewOrder(Long memberId, OrderPreviewRequest request) {
@@ -216,7 +220,11 @@ public class OrderService {
                 () -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND)
         );
 
-        return OrderDetailResponse.of(order, orderItems, payment);
+        List<Refund> refunds = refundRepository.findByPaymentId(payment.getId()).stream()
+                .filter(r -> r.getStatus() == RefundStatus.COMPLETED)
+                .toList();
+
+        return OrderDetailResponse.of(order, orderItems, payment, refunds);
     }
 
     @Transactional

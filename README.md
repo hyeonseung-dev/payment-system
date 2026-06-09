@@ -130,82 +130,103 @@ main
 
 ## 프로젝트파일 구조
 
+```text
 com.example.paymentsystem
 ├── domain
 │   ├── auth
 │   │   ├── controller
 │   │   ├── service
 │   │   └── dto
-│   │
 │   ├── member
 │   │   ├── entity
 │   │   ├── repository
-│   │   └── service
-│   │
+│   │   └── dummy
 │   ├── product
 │   │   ├── controller
 │   │   ├── service
 │   │   ├── repository
 │   │   ├── entity
+│   │   ├── enumType
+│   │   ├── dummy 
 │   │   └── dto
-│   │
 │   ├── cart
 │   │   ├── controller
 │   │   ├── service
 │   │   ├── repository
 │   │   ├── entity
 │   │   └── dto
-│   │
 │   ├── order
 │   │   ├── controller
 │   │   ├── service
 │   │   ├── repository
+│   │   ├── enums
 │   │   ├── entity
 │   │   └── dto
-│   │
 │   ├── point
 │   │   ├── controller
 │   │   ├── service
 │   │   ├── repository
+│   │   ├── enums
 │   │   ├── entity
 │   │   └── dto
-│   │
 │   ├── payment
 │   │   ├── controller
 │   │   ├── service
 │   │   ├── repository
+│   │   ├── enums
 │   │   ├── entity
 │   │   └── dto
-│   │
 │   ├── refund
 │   │   ├── controller
 │   │   ├── service
 │   │   ├── repository
+│   │   ├── facade
 │   │   ├── entity
 │   │   └── dto
-│   │
 │   └── webhook
 │       ├── controller
 │       ├── service
 │       ├── repository
-│       ├── entity
-│       └── dto
-│
+│       └── entity
 ├── global
 │   ├── common
 │   │   └── BaseEntity
 │   ├── config
+│   │   └── SecurityConfig
 │   ├── error
+│   │   └── BusinessException
+│   │   └── ErrorCode
 │   ├── exception
+│   │   └── GlobalExceptionHandler
 │   ├── response
+│   │   └── ApiResponse
 │   └── security
 │       ├── filter
 │       ├── handler
 │       └── jwt
-│
-└── infra
-    └── portone
-    
+├── infra.portone
+│   ├── clinet
+│   │   ├── PortOneClient
+│   │   ├── PortOneClientlmpl
+│   │   ├── PortOneIdempotencyKeyGenerator
+│   │   └── PortOnePaymentIdGenerator
+│   ├── config
+│   │   └── PortOneConfig
+│   │   └── PortOneProperties
+│   ├── controller
+│   │   └── PortOneConfigController
+│   ├── dto
+│   │   ├── PortOneCancelRequest
+│   │   ├── PortOneCancelResponse
+│   │   ├── PortOneConfigResponse
+│   │   └── PortOnePaymentResponse
+└────── webhook
+        ├── PortOneWebhookHandler
+        └── PortOneWebhookVerifier
+
+
+```
+        
 ---
 
 ## 트러블 슈팅

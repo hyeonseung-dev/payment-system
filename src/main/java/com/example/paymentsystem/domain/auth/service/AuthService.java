@@ -71,7 +71,7 @@ public class AuthService {
         String token = jwtUtil.generateToken(member.getId());
 
         // 4. 토큰 반환
-        return LoginResponse.of(token);
+        return LoginResponse.of(token, member.getName(), member.getPhoneNumber());
     }
 
     @Transactional

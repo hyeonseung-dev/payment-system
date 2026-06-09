@@ -28,7 +28,8 @@ public class ProductService {
                                 product.getPrice(),
                                 product.getStockQuantity(),
                                 product.getCategory(),
-                                product.getStatus()
+                                product.getStatus(),
+                                product.getImageUrl()
                         ))
                         .toList();
         return new ProductPageResponse(
@@ -51,7 +52,8 @@ public class ProductService {
                 product.getStockQuantity(),
                 product.getDescription(),
                 product.getCategory(),
-                product.getStatus()
+                product.getStatus(),
+                product.getImageUrl()
         );
     }
 }

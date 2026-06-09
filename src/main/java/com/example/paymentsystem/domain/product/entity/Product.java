@@ -38,6 +38,8 @@ public class Product extends BaseEntity{
     @Column(nullable = false)
     private ProductStatus status;
 
+    private String imageUrl;
+
     @Builder
     private Product(
             String name,
@@ -45,7 +47,8 @@ public class Product extends BaseEntity{
             Integer stockQuantity,
             String description,
             ProductCategory category,
-            ProductStatus status
+            ProductStatus status,
+            String imageUrl
     ) {
         this.name = name;
         this.price = price;
@@ -53,6 +56,7 @@ public class Product extends BaseEntity{
         this.description = description;
         this.category = category;
         this.status = status;
+        this.imageUrl = imageUrl;
     }
 
     public Product(String name, Integer price, Integer stockQuantity, ProductCategory category, ProductStatus status) {

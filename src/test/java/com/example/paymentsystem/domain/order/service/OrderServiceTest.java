@@ -542,6 +542,7 @@ class OrderServiceTest {
         when(orderItem.getQuantity()).thenReturn(2);
 
         // 주문 상세 응답에 필요한 결제 정보를 준비한다.
+        when(payment.getId()).thenReturn(10L);
         when(payment.getStatus()).thenReturn(PaymentStatus.READY);
         when(payment.getEarnedPointAmount()).thenReturn(0L);
         when(payment.getPgAmount()).thenReturn(25000L);
@@ -568,6 +569,7 @@ class OrderServiceTest {
         assertThat(response.pgAmount()).isEqualTo(25_000L);
         assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.READY);
         assertThat(response.earnedPointAmount()).isEqualTo(0L);
+        assertThat(response.paymentId()).isEqualTo(10L);
         assertThat(response.items()).hasSize(1);
 
         OrderDetailItemResponse item = response.items().get(0);

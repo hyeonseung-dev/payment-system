@@ -43,6 +43,8 @@ public class SecurityConfig {
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/", "/index.html").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/css/**", "/js/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/payment-test.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/config.js").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/signup").permitAll()

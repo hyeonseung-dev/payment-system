@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -32,15 +33,16 @@ public class CartService {
 
     @Transactional(readOnly = true)
     public CartResponse findCartItems(Long memberId) {
-        Cart cart = cartRepository.findByMember_Id(memberId).orElseThrow(
-                () -> new BusinessException(ErrorCode.CART_NOT_FOUND)
-        );
+        Optional<Cart> optCart = cartRepository.findByMember_Id(memberId);
+        if (optCart.isEmpty()) {
+            return CartResponse.of(null, List.of());
+        }
 
         List<CartItemResponse> list = cartItemRepository.findAllByMemberId(memberId).stream()
                 .map(CartItemResponse::from)
                 .toList();
 
-        return CartResponse.of(cart.getId(), list);
+        return CartResponse.of(optCart.get().getId(), list);
     }
 
     @Transactional

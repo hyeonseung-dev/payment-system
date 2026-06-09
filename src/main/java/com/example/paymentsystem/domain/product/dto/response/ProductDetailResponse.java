@@ -10,6 +10,7 @@ public record ProductDetailResponse(
         Integer stockQuantity,
         String description,
         ProductCategory category,
-        ProductStatus status
+        ProductStatus status,
+        String imageUrl
 ) {
 }

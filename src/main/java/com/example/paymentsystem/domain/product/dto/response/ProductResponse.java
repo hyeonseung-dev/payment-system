@@ -9,6 +9,7 @@ public record ProductResponse(
         Integer price,
         Integer stockQuantity,
         ProductCategory category,
-        ProductStatus status
+        ProductStatus status,
+        String imageUrl
 ) {
 }

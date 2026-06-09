@@ -19,6 +19,7 @@ public record OrderDetailResponse(
         LocalDateTime createAt,
         PaymentStatus paymentStatus,
         Long earnedPointAmount,
+        Long paymentId,
         List<OrderDetailItemResponse> items
 ) {
     public static OrderDetailResponse of(Order order, List<OrderItem> orderItems, Payment payment) {
@@ -43,6 +44,7 @@ public record OrderDetailResponse(
                 order.getCreatedAt(),
                 payment.getStatus(),
                 payment.getEarnedPointAmount(),
+                payment.getId(),
                 items
         );
     }

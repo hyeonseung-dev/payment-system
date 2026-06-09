@@ -129,83 +129,84 @@ main
 ---
 
 ## 프로젝트파일 구조
-
-com.example.paymentsystem
-├── domain
-│   ├── auth
-│   │   ├── controller
-│   │   ├── service
-│   │   └── dto
-│   │
-│   ├── member
-│   │   ├── entity
-│   │   ├── repository
-│   │   └── service
-│   │
-│   ├── product
-│   │   ├── controller
-│   │   ├── service
-│   │   ├── repository
-│   │   ├── entity
-│   │   └── dto
-│   │
-│   ├── cart
-│   │   ├── controller
-│   │   ├── service
-│   │   ├── repository
-│   │   ├── entity
-│   │   └── dto
-│   │
-│   ├── order
-│   │   ├── controller
-│   │   ├── service
-│   │   ├── repository
-│   │   ├── entity
-│   │   └── dto
-│   │
-│   ├── point
-│   │   ├── controller
-│   │   ├── service
-│   │   ├── repository
-│   │   ├── entity
-│   │   └── dto
-│   │
-│   ├── payment
-│   │   ├── controller
-│   │   ├── service
-│   │   ├── repository
-│   │   ├── entity
-│   │   └── dto
-│   │
-│   ├── refund
-│   │   ├── controller
-│   │   ├── service
-│   │   ├── repository
-│   │   ├── entity
-│   │   └── dto
-│   │
-│   └── webhook
-│       ├── controller
-│       ├── service
-│       ├── repository
-│       ├── entity
-│       └── dto
-│
-├── global
-│   ├── common
-│   │   └── BaseEntity
-│   ├── config
-│   ├── error
-│   ├── exception
-│   ├── response
-│   └── security
-│       ├── filter
-│       ├── handler
-│       └── jwt
-│
-└── infra
-    └── portone
-    
+```
+    com.example.paymentsystem
+    ├── domain
+    │   ├── auth
+    │   │   ├── controller
+    │   │   ├── service
+    │   │   └── dto
+    │   │
+    │   ├── member
+    │   │   ├── entity
+    │   │   ├── repository
+    │   │   └── service
+    │   │
+    │   ├── product
+    │   │   ├── controller
+    │   │   ├── service
+    │   │   ├── repository
+    │   │   ├── entity
+    │   │   └── dto
+    │   │
+    │   ├── cart
+    │   │   ├── controller
+    │   │   ├── service
+    │   │   ├── repository
+    │   │   ├── entity
+    │   │   └── dto
+    │   │
+    │   ├── order
+    │   │   ├── controller
+    │   │   ├── service
+    │   │   ├── repository
+    │   │   ├── entity
+    │   │   └── dto
+    │   │
+    │   ├── point
+    │   │   ├── controller
+    │   │   ├── service
+    │   │   ├── repository
+    │   │   ├── entity
+    │   │   └── dto
+    │   │
+    │   ├── payment
+    │   │   ├── controller
+    │   │   ├── service
+    │   │   ├── repository
+    │   │   ├── entity
+    │   │   └── dto
+    │   │
+    │   ├── refund
+    │   │   ├── controller
+    │   │   ├── service
+    │   │   ├── repository
+    │   │   ├── entity
+    │   │   └── dto
+    │   │
+    │   └── webhook
+    │       ├── controller
+    │       ├── service
+    │       ├── repository
+    │       ├── entity
+    │       └── dto
+    │
+    ├── global
+    │   ├── common
+    │   │   └── BaseEntity
+    │   ├── config
+    │   ├── error
+    │   ├── exception
+    │   ├── response
+    │   └── security
+    │       ├── filter
+    │       ├── handler
+    │       └── jwt
+    │
+    └── infra
+        └── portone
+```
+        
 ---
 
 ## 트러블 슈팅

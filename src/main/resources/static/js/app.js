@@ -1020,9 +1020,9 @@ async function runPortone(order) {
       currency:    'CURRENCY_KRW',
       payMethod:   'CARD',
       customer: {
-        email:       m?.email       || '',
-        fullName:    m?.name        || '',
-        phoneNumber: m?.phoneNumber || '',
+        email:       m?.email       || undefined,
+        fullName:    m?.name        || undefined,
+        phoneNumber: m?.phoneNumber || undefined,
       },
     });
   } catch (ex) {

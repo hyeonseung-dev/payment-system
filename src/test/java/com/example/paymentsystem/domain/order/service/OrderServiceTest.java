@@ -65,6 +65,8 @@ class OrderServiceTest {
     private ProductRepository productRepository;
     @Mock
     private PointService pointService;
+    @Mock
+    private com.example.paymentsystem.domain.refund.repository.RefundRepository refundRepository;
 
     Long memberId = 1L;
     Long cartItemId = 1L;
@@ -556,6 +558,8 @@ class OrderServiceTest {
                 .thenReturn(List.of(orderItem));
         when(paymentRepository.findByOrder_Id(orderId))
                 .thenReturn(Optional.of(payment));
+        when(refundRepository.findByPaymentId(10L))
+                .thenReturn(List.of());
 
         // when
         OrderDetailResponse response = orderService.findOrderDetail(memberId, orderId);

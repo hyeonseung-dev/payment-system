@@ -45,7 +45,7 @@ const PAY_STATUS = {
   REFUNDED:          '전액 환불',
   FAILED:            '실패',
 };
-const POINT_TYPE = { EARNED: '적립', USED: '사용', REFUNDED: '반환' };
+const POINT_TYPE = { EARN: '적립', USE: '사용', USE_CANCEL: '사용 취소 (환불)', EARN_CANCEL: '적립 취소 (환불)' };
 
 const statusLabel   = s => ORDER_STATUS[s]  || s || '-';
 const payLabel      = s => PAY_STATUS[s]    || s || '-';
@@ -400,11 +400,11 @@ async function renderOrderPreview() {
   try {
     const [preview, pointData] = await Promise.all([
       API.getOrderPreview(S.pendingCartIds, 0),
-      API.getPointBalance().catch(() => ({ balance: 0 })),
+      API.getPointBalance().catch(() => ({ pointBalance: 0 })),
     ]);
 
     S.pendingPreview  = preview;
-    const balance = pointData?.balance || 0;
+    const balance = pointData?.pointBalance || 0;
 
     const itemRows = (preview?.items || []).map(it => `
       <div class="preview-item">
@@ -586,6 +586,26 @@ async function renderOrderDetail(id) {
           </div>
         </div>
 
+        ${(o.refunds && o.refunds.length > 0) ? `
+        <div class="od-section">
+          <h3 class="sec-title">환불 내역</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>일시</th><th>사유</th><th>환불 금액</th><th>PG 환불</th><th>포인트 환불</th></tr></thead>
+              <tbody>
+                ${o.refunds.map(r => `
+                  <tr>
+                    <td>${fmtDate(r.createdAt)}</td>
+                    <td>${r.reason}</td>
+                    <td class="tr">${fmtPrice(r.totalRefundAmount)}원</td>
+                    <td class="tr">${fmtPrice(r.pgRefundAmount)}원</td>
+                    <td class="tr">${fmtPrice(r.pointRefundAmount)}원</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>` : ''}
+
         ${actions ? `<div class="od-actions">${actions}</div>` : ''}
       </div>
     `);
@@ -606,20 +626,23 @@ async function renderPoints(page = 0) {
       API.getPointHistories(page),
     ]);
 
-    const balance  = bal?.balance || 0;
+    const balance  = bal?.pointBalance || 0;
     const rows     = hist?.content || [];
 
     const histRows = rows.length === 0
       ? `<tr><td colspan="4" class="tc empty-row">포인트 내역이 없습니다.</td></tr>`
-      : rows.map(h => `
+      : rows.map(h => {
+          const isNeg = h.amount < 0;
+          return `
         <tr>
           <td>${fmtDate(h.createdAt)}</td>
           <td><span class="pt-badge pt-${h.type.toLowerCase()}">${ptLabel(h.type)}</span></td>
-          <td class="tr ${h.type === 'USED' ? 'pt-neg' : 'pt-pos'}">
-            ${h.type === 'USED' ? '-' : '+'}${fmtPrice(h.amount)}P
+          <td class="tr ${isNeg ? 'pt-neg' : 'pt-pos'}">
+            ${isNeg ? '-' : '+'}${fmtPrice(Math.abs(h.amount))}P
           </td>
-          <td class="tr">${fmtPrice(h.balance)}P</td>
-        </tr>`).join('');
+          <td class="tr">${fmtPrice(h.balanceAfter)}P</td>
+        </tr>`;
+        }).join('');
 
     setHTML(`
       <div class="page-header"><h1 class="page-title">포인트</h1></div>
@@ -635,7 +658,7 @@ async function renderPoints(page = 0) {
           <tbody>${histRows}</tbody>
         </table>
       </div>
-      ${hist?.totalPages > 1 ? buildPager(page, hist.totalPages, renderPoints) : ''}
+      ${hist?.totalElements > hist?.size ? buildPager(page, Math.ceil(hist.totalElements / hist.size), renderPoints) : ''}
     `);
   } catch (e) {
     toast(e.message, 'error');
@@ -892,11 +915,11 @@ async function renderDirectPreview() {
     const { productId, quantity } = S.pendingDirectBuy;
     const [product, pointData] = await Promise.all([
       API.getProduct(productId),
-      API.getPointBalance().catch(() => ({ balance: 0 })),
+      API.getPointBalance().catch(() => ({ pointBalance: 0 })),
     ]);
 
     const totalAmount = product.price * quantity;
-    const balance     = pointData?.balance || 0;
+    const balance     = pointData?.pointBalance || 0;
 
     setHTML(`
       <div class="back-row">

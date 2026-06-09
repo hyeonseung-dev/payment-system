@@ -5,6 +5,7 @@ import com.example.paymentsystem.domain.order.entity.OrderItem;
 import com.example.paymentsystem.domain.order.enums.OrderStatus;
 import com.example.paymentsystem.domain.payment.entity.Payment;
 import com.example.paymentsystem.domain.payment.entity.PaymentStatus;
+import com.example.paymentsystem.domain.refund.entity.Refund;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,18 +21,19 @@ public record OrderDetailResponse(
         PaymentStatus paymentStatus,
         Long earnedPointAmount,
         Long paymentId,
-        List<OrderDetailItemResponse> items
+        List<OrderDetailItemResponse> items,
+        List<RefundSummaryResponse> refunds
 ) {
-    public static OrderDetailResponse of(Order order, List<OrderItem> orderItems, Payment payment) {
-        // 주문 생성 시점에 저장한 포인트 사용 금액
+    public static OrderDetailResponse of(Order order, List<OrderItem> orderItems, Payment payment, List<Refund> refunds) {
         int pointAmount = order.getUsePointAmountSnapshot();
-
-        // Payment에 저장된 실제 PG 결제 금액을 사용한다
         Long pgAmount = payment.getPgAmount();
 
-        // 주문 상품 엔티티를 상세 응답 DTO로 변환
         List<OrderDetailItemResponse> items = orderItems.stream()
                 .map(OrderDetailItemResponse::from)
+                .toList();
+
+        List<RefundSummaryResponse> refundSummaries = refunds.stream()
+                .map(RefundSummaryResponse::from)
                 .toList();
 
         return new OrderDetailResponse(
@@ -45,7 +47,8 @@ public record OrderDetailResponse(
                 payment.getStatus(),
                 payment.getEarnedPointAmount(),
                 payment.getId(),
-                items
+                items,
+                refundSummaries
         );
     }
 }

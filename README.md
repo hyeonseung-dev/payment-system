@@ -130,7 +130,7 @@ main
 
 ## 프로젝트파일 구조
 
-```
+```text
 com.example.paymentsystem
 ├── domain
 │   ├── auth

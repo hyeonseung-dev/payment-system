@@ -1,6 +1,7 @@
 # docs/ERD.md
 
 # ERD
+<img width="1972" height="1355" alt="image" src="https://github.com/user-attachments/assets/a3561bfc-6a61-443b-91d8-2fce4b63c6b7" />
 
 ## Tables
 
